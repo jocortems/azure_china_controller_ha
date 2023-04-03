@@ -167,6 +167,32 @@ variable "avx_controller_version" {
   default     = "latest"
 }
 
+variable "log_analytics_workspace_id" {
+  type        = string
+  description = "Azure Log Analytics Workspace ID. Needed to create Application Insights. If left blank a new log analytics workspace is created"
+  default     = null
+}
+
+variable "log_analytics_workspace_sku" {
+  type        = string
+  description = "Log analytics workspace SKU"
+  default     = null
+}
+
+variable "log_analytics_workspace_retention_in_days" {
+  type        = number
+  description = "Log analytics workspace log retention period"
+  default     = null
+}
+
+variable "log_analytics_workspace_daily_quota" {
+  type        = number
+  description = "Log analytics workspace daily quota specified in GB"
+  default     = null
+}
+
+
+
 variable "application_insights_name" {
   type        = string
   description = "The name of the application insights to be deployed for the function app."

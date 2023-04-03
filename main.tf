@@ -447,11 +447,13 @@ resource "azurerm_role_assignment" "aviatrix_function_vault_role" {
 
 # 11.0. Deploy Application Insights
 resource "azurerm_log_analytics_workspace" "aviatrix_controller_workspace" {
+  count               = var.log_analytics_workspace_id ? 0 : 1
   name                = "${var.scale_set_controller_name}-la-workspace"
   location            = azurerm_resource_group.aviatrix_rg.location
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
-  sku                 = "Free"
-  retention_in_days   = 7
+  sku                 = var.log_analytics_workspace_sku ? var.log_analytics_workspace_sku : "Free"  
+  retention_in_days   = var.log_analytics_workspace_retention_in_days ? var.log_analytics_workspace_retention_in_days : 7
+  daily_quota_gb      = var.log_analytics_workspace_daily_quota
 }
 
 resource "azurerm_application_insights" "application_insights" {
