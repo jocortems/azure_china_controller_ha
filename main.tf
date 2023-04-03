@@ -295,15 +295,15 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "aviatrix_scale_set" {
   }
 
   plan {
-    name      = "aviatrix-enterprise-bundle-byol"
-    product   = "aviatrix-bundle-payg"
-    publisher = "aviatrix-systems"
+    name      = "aviatrix-enterprise-bundle-byol-china"
+    product   = "aviatrix-bundle-payg-china"
+    publisher = "cbcnetworks"
   }
 
   source_image_reference {
-    offer     = "aviatrix-bundle-payg"
-    publisher = "aviatrix-systems"
-    sku       = "aviatrix-enterprise-bundle-byol"
+    offer     = "aviatrix-bundle-payg-china"
+    publisher = "cbcnetworks"
+    sku       = "aviatrix-enterprise-bundle-byol-china"
     version   = "latest"
   }
 
