@@ -167,12 +167,6 @@ variable "avx_controller_version" {
   default     = "latest"
 }
 
-variable "log_analytics_workspace_id" {
-  type        = string
-  description = "Azure Log Analytics Workspace ID. Needed to create Application Insights. If left blank a new log analytics workspace is created"
-  default     = ""
-}
-
 variable "log_analytics_workspace_sku" {
   type        = string
   description = "Log analytics workspace SKU"

@@ -450,7 +450,7 @@ resource "azurerm_log_analytics_workspace" "aviatrix_controller_workspace" {
   name                = "${var.scale_set_controller_name}-la-workspace"
   location            = azurerm_resource_group.aviatrix_rg.location
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
-  sku                 = var.log_analytics_workspace_sku  
+  sku                 = var.log_analytics_workspace_sku
   retention_in_days   = var.log_analytics_workspace_retention_in_days
   daily_quota_gb      = var.log_analytics_workspace_daily_quota
 }
