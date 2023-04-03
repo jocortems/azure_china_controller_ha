@@ -6,8 +6,7 @@ provider "azurerm" {
     resource_group {
       prevent_deletion_if_contains_resources = false
     }  
-  }
-  version = "~> 2.0"
+  }  
   environment = "china_cloud"
   skip_provider_registration = true
 }

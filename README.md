@@ -31,11 +31,6 @@ This Terraform module:
       Microsoft.insights
       Microsoft.Web
   ```
-5. Set environment variables ARM_ENDPOINT and ARM_ENVIRONMENT to use Azure China endpoints:
-  ``` shell
-  export ARM_ENDPOINT=https://management.chinacloudapi.cn
-  export ARM_ENVIRONMENT=AzureChinaCloud
-  ```
 
 ## Providers
 
@@ -89,10 +84,16 @@ pip install -r requirements.txt
 
 ### 2. Authenticating to Azure
 
+Set the environment in Azure CLI to Azure China:
+
+```shell
+az cloud set -n AzureChinaCloud
+```
+
 Login to the Azure CLI using:
 
 ```shell
-az login
+az login --use-device-code
 ````
 *Note: Please refer to the [documentation](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs#authenticating-to-azure-active-directory) for different methods of authentication to Azure, incase above command is not applicable.*
 
@@ -100,13 +101,20 @@ Pick the subscription you want and use it in the command below.
 
 ```shell
 az account set --subscription <subscription_id>
-````
+```
+
+Set environment variables ARM_ENDPOINT and ARM_ENVIRONMENT to use Azure China endpoints in Terraform:
+
+  ``` shell
+  export ARM_ENDPOINT=https://management.chinacloudapi.cn
+  export ARM_ENVIRONMENT=AzureChinaCloud
+  ```
 
 ### 3. Applying Terraform configuration
 
 ```hcl
 module "aviatrix_controller_azure" {
-    source                                         = "github.com/jocortems/aviatrix_controller_ha_azure"
+    source                                         = "github.com/jocortems/azure_china_controller_ha"
     resource_group_name                            = "<RESOURCE GROUP NAME>"                     # Required; Creates a Resource Group with this name.
     location                                       = "<AZURE REGION>"                    # Required; Creates all resources in this region/location.
     avtx_service_principal_secret                  = var.avtx_service_principal_secret #Required; Azure AD SP object secret to be used to onboard Azure to Aviatrix Controller. Sensitive
