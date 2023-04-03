@@ -176,7 +176,7 @@ variable "log_analytics_workspace_id" {
 variable "log_analytics_workspace_sku" {
   type        = string
   description = "Log analytics workspace SKU"
-  default     = ""
+  default     = "Free"
 }
 
 variable "log_analytics_workspace_retention_in_days" {
