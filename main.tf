@@ -462,7 +462,7 @@ resource "azurerm_application_insights" "application_insights" {
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   application_type    = "web"
   retention_in_days   = 30
-  workspace_id        = azurerm_log_analytics_workspace.aviatrix_controller_workspace.workspace_id
+  workspace_id        = azurerm_log_analytics_workspace.aviatrix_controller_workspace[0].workspace_id
 }
 
 # 11.1. Deploy App Service Plan
