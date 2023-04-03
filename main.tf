@@ -294,12 +294,13 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "aviatrix_scale_set" {
     }
   }
 
-
+/*
   plan {
     name      = "aviatrix-enterprise-bundle-byol-china"
     product   = "aviatrix-bundle-payg-china"
     publisher = "cbcnetworks"
   }
+*/
 
   source_image_reference {
     offer     = "aviatrix-bundle-payg-china"
@@ -452,6 +453,7 @@ resource "azurerm_log_analytics_workspace" "aviatrix_controller_workspace" {
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   sku                 = var.log_analytics_workspace_sku
   retention_in_days   = var.log_analytics_workspace_retention_in_days
+  daily_quota_gb      = var.log_analytics_workspace_daily_quota_gb
 }
 
 resource "azurerm_application_insights" "application_insights" {
