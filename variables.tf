@@ -179,14 +179,6 @@ variable "log_analytics_workspace_retention_in_days" {
   default     = 7
 }
 
-variable "log_analytics_workspace_daily_quota" {
-  type        = number
-  description = "Log analytics workspace daily quota specified in GB"
-  default     = 0.5
-}
-
-
-
 variable "application_insights_name" {
   type        = string
   description = "The name of the application insights to be deployed for the function app."
