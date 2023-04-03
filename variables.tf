@@ -182,13 +182,13 @@ variable "log_analytics_workspace_sku" {
 variable "log_analytics_workspace_retention_in_days" {
   type        = number
   description = "Log analytics workspace log retention period"
-  default     = ""
+  default     = 7
 }
 
 variable "log_analytics_workspace_daily_quota" {
   type        = number
   description = "Log analytics workspace daily quota specified in GB"
-  default     = ""
+  default     = 0.5
 }
 
 

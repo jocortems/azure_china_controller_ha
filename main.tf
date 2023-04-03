@@ -452,8 +452,8 @@ resource "azurerm_log_analytics_workspace" "aviatrix_controller_workspace" {
   location            = azurerm_resource_group.aviatrix_rg.location
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   sku                 = var.log_analytics_workspace_sku ? var.log_analytics_workspace_sku : "Free"  
-  retention_in_days   = var.log_analytics_workspace_retention_in_days ? var.log_analytics_workspace_retention_in_days : 7
-  daily_quota_gb      = var.log_analytics_workspace_daily_quota ? var.log_analytics_workspace_daily_quota : null
+  retention_in_days   = var.log_analytics_workspace_retention_in_days
+  daily_quota_gb      = var.log_analytics_workspace_daily_quota
 }
 
 resource "azurerm_application_insights" "application_insights" {
