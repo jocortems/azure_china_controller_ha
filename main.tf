@@ -294,6 +294,7 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "aviatrix_scale_set" {
     }
   }
 
+
   plan {
     name      = "aviatrix-enterprise-bundle-byol-china"
     product   = "aviatrix-bundle-payg-china"
@@ -445,11 +446,21 @@ resource "azurerm_role_assignment" "aviatrix_function_vault_role" {
 
 
 # 11.0. Deploy Application Insights
+resource "azurerm_log_analytics_workspace" "aviatrix_controller_workspace" {
+  name                = "${var.scale_set_controller_name}-la-workspace"
+  location            = azurerm_resource_group.aviatrix_rg.location
+  resource_group_name = azurerm_resource_group.aviatrix_rg.name
+  sku                 = "Free"
+  retention_in_days   = 7
+}
+
 resource "azurerm_application_insights" "application_insights" {
   name                = var.application_insights_name
   location            = azurerm_resource_group.aviatrix_rg.location
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   application_type    = "web"
+  retention_in_days   = 30
+  workspace_id        = azurerm_log_analytics_workspace.aviatrix_controller_workspace.workspace_id
 }
 
 # 11.1. Deploy App Service Plan
