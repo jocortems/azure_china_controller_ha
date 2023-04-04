@@ -565,6 +565,25 @@ resource "azurerm_linux_function_app" "controller_app" {
   ]
 }
 
+# Enable diagnostic settings for the Function App
+
+resource "azurerm_monitor_diagnostic_setting" "function_diagnostics" {
+  name               = "${azurerm_linux_function_app.controller_app.name}-diagnostics"
+  target_resource_id = azurerm_linux_function_app.controller_app.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.aviatrix_controller_workspace.id
+
+  log {
+    category = "FunctionAppLogs"
+    enabled  = true
+  }
+
+  metric {
+    category = "AllMetrics"
+    enabled  = true
+  }
+}
+
+
 # 11.3. Add Function APP Public IP's to Network Security Group
 resource "azurerm_network_security_rule" "function_app_rules" {
   name                        = "httpsFunctionAppInboundToScaleSet"
