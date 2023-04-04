@@ -30,7 +30,7 @@ def function_handler(event):
     lb_name = event["lb_name"]
     rg = event["rg"]
 
-    credentials = DefaultAzureCredential(managed_identity_client_id=func_client_id)
+    credentials = DefaultAzureCredential(authority="login.chinacloudapi.cn", managed_identity_client_id=func_client_id)
     subscription_client = SubscriptionClient(credentials, base_url='https://management.chinacloudapi.cn')
     subscription = next(subscription_client.subscriptions.list())
     subscription_id = subscription.subscription_id    

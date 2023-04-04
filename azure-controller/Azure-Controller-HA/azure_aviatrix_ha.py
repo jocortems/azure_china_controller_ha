@@ -41,7 +41,7 @@ def function_handler(event):
     rg = event["rg"]
     wait_time = default_wait_time_for_apache_wakeup
 
-    credentials = DefaultAzureCredential(managed_identity_client_id=func_client_id)
+    credentials = DefaultAzureCredential(authority="login.chinacloudapi.cn", managed_identity_client_id=func_client_id)
     subscription_client = SubscriptionClient(credentials, base_url='https://management.chinacloudapi.cn')
     subscription = next(subscription_client.subscriptions.list())
     subscription_id = subscription.subscription_id    
