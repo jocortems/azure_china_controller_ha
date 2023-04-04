@@ -387,7 +387,7 @@ module "aviatrix_controller_initialize" {
   controller_version            = var.avx_controller_version
   storage_account_name          = azurerm_storage_account.aviatrix_controller_storage.name
   storage_account_container     = azurerm_storage_container.aviatrix_backup_container.name
-  storage_account_region        = azurerm_storage_account.aviatrix_controller_storage.location
+  storage_account_region        = var.location
   multiple_backup               = local.m_backup
 }
 
@@ -561,6 +561,11 @@ resource "azurerm_linux_function_app" "controller_app" {
  
     application_stack {
       python_version = "3.9"
+    }
+
+    app_service_logs {
+      disk_quota_mb = 50
+      retention_period_days = 1
     }
   }
 

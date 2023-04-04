@@ -856,7 +856,7 @@ def enable_backup(
     container_name="storage_container_name",
     now="true",
     multiple_backup="true",
-    region="chinanorth3",
+    region="China North 3",
 ):
     request_method = "POST"
     data = {
@@ -867,7 +867,7 @@ def enable_backup(
         "storage_name": storage_name,
         "container_name": container_name,
         "now": now,
-        "multiple_backup": multiple_backup,
+        "multiple": multiple_backup,
         "region": region,
     }
 
