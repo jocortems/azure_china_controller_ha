@@ -8,6 +8,10 @@ terraform {
       source = "hashicorp/azuread"
       version = "~> 2.36"
     }
+    azapi = {
+      source = "Azure/azapi"
+      version = "1.4.0"
+    }
     null = {
       source = "hashicorp/null"
     }
@@ -235,92 +239,122 @@ resource "azurerm_network_security_rule" "user_defined_rules" {
 }
 
 # 8.0 Deploy Aviatrix Controller Scale Set
-resource "azurerm_orchestrated_virtual_machine_scale_set" "aviatrix_scale_set" {
-  name                        = var.scale_set_controller_name
-  resource_group_name         = azurerm_resource_group.aviatrix_rg.name
-  location                    = azurerm_resource_group.aviatrix_rg.location
-  sku_name                    = var.controller_virtual_machine_size
-  priority                    = "Regular"
-  instances                   = 1
-  platform_fault_domain_count = 1
-  encryption_at_host_enabled  = false
-  zone_balance                = false
-  tags = {
-    "aviatrix_image" = "aviatrix-controller"
-  }
+resource "azapi_resource" "vmss" {
+  type      = "Microsoft.Compute/virtualMachineScaleSets@2022-11-01"
+  name      = var.scale_set_controller_name
+  parent_id = azurerm_resource_group.aviatrix_rg.id
+  location  = azurerm_resource_group.aviatrix_rg.location
 
-  automatic_instance_repair {
-    enabled = false
-  }
-
-  network_interface {
-    dns_servers                   = []
-    enable_accelerated_networking = false
-    enable_ip_forwarding          = false
-    name                          = "${var.scale_set_controller_name}-nic01"
-    network_security_group_id     = azurerm_network_security_group.aviatrix_controller_nsg.id
-    primary                       = true
-
-    ip_configuration {
-      load_balancer_backend_address_pool_ids = [
-        azurerm_lb_backend_address_pool.aviatrix_controller_lb_backend_pool.id
-      ]
-      name      = "${var.scale_set_controller_name}-nic01"
-      primary   = true
-      subnet_id = azurerm_subnet.aviatrix_controller_subnet.id
-      version   = "IPv4"
-
-      public_ip_address {
-        idle_timeout_in_minutes = 15
-        name                    = "${var.scale_set_controller_name}-public-ip"
-      }
+  body = jsonencode({
+    sku = {
+      name = var.controller_virtual_machine_size
+      tier = "Standard"
+      capacity = 1
     }
-  }
-
-  os_profile {
-    linux_configuration {
-      computer_name_prefix            = "aviatrix-"
-      disable_password_authentication = var.controller_public_ssh_key == "" ? false : true
-      admin_username                  = var.controller_virtual_machine_admin_username
-      admin_password                  = length(var.controller_public_ssh_key) > 0 ? null : var.controller_virtual_machine_admin_password == "" ? random_password.generate_controller_cli_secret[0].result : var.controller_virtual_machine_admin_password
-      provision_vm_agent              = true
-      dynamic "admin_ssh_key" {
-        for_each = var.controller_public_ssh_key == "" ? [] : [true]
-        content {
-          public_key = var.controller_public_ssh_key
-          username   = var.controller_virtual_machine_admin_username
+    tags = {
+      aviatrix_image = "aviatrix-controller"
+    }
+    properties = {
+      platformFaultDomainCount = 1
+      singlePlacementGroup     = false
+      zoneBalance              = false
+      orchestrationMode        = "Flexible"
+      automaticRepairsPolicy   = {
+        enabled = false
+      }
+      virtualMachineProfile = {
+        osProfile = {
+          computerNamePrefix = "aviatrix-"
+          adminUsername = var.controller_virtual_machine_admin_username
+          adminPassword = length(var.controller_public_ssh_key) > 0 ? null : var.controller_virtual_machine_admin_password == "" ? random_password.generate_controller_cli_secret[0].result : var.controller_virtual_machine_admin_password
+          linuxConfiguration = {
+            disablePasswordAuthentication = var.controller_public_ssh_key == "" ? false : true
+            provisionVMAgent = true
+            enableVMAgentPlatformUpdates = false
+            ssh = var.controller_public_ssh_key == "" ? {} : {
+              publicKeys = [
+                {
+                  keyData = var.controller_public_ssh_key
+                  path = "home/${var.controller_virtual_machine_admin_username}/.ssh/authorized_keys"
+                }
+              ]
+            }
+          }
         }
+          storageProfile = {
+            osDisk = {
+              osType = "Linux"
+              createOption = "FromImage"
+              caching = "ReadWrite"
+              managedDisk = {
+                storageAccountType = "Standard_LRS"
+              }
+              deleteOption = "Delete"
+              diskSizeGB = 64
+            }
+            imageReference = {
+              publisher = "cbcnetworks"
+              offer = "aviatrix-bundle-payg-china"
+              sku = "aviatrix-enterprise-bundle-byol-china"
+              version = "latest"
+            }
+          }
+          networkProfile = {
+            networkApiVersion = "2020-11-01"
+            networkInterfaceConfigurations = [
+              {
+              name = "${var.scale_set_controller_name}-nic01"
+              properties = {
+                primary = true
+                enableAcceleratedNetworking = false
+                enableIPForwarding = false
+                dnsSettings = {
+                  dnsServers = []
+                }
+                ipConfigurations = [
+                  {
+                    name = "${var.scale_set_controller_name}-nic01"
+                    properties = {
+                      privateIPAddressVersion = "IPv4"
+                      subnet = {
+                        id = azurerm_subnet.aviatrix_controller_subnet.id
+                      }
+                      primary = true
+                      publicIPAddressConfiguration = {
+                        name = "${var.scale_set_controller_name}-public-ip"
+                        properties = {
+                          publicIPAddressVersion = "IPv4"
+                          idleTimeoutInMinutes = 15                          
+                        }
+                        sku = {
+                          name = "Standard"
+                          tier = "Regional"
+                        }
+                      }
+                      loadBalancerBackendAddressPools = [
+                        {
+                          id = azurerm_lb_backend_address_pool.aviatrix_controller_lb_backend_pool.id
+                        }
+                      ]
+                    }
+                  }
+                ]
+                networkSecurityGroup = {
+                  id = azurerm_network_security_group.aviatrix_controller_nsg.id
+                }
+              }
+              }
+            ]          
+          }        
       }
     }
-  }
-
-/*
-  plan {
-    name      = "aviatrix-enterprise-bundle-byol-china"
-    product   = "aviatrix-bundle-payg-china"
-    publisher = "cbcnetworks"
-  }
-*/
-
-  source_image_reference {
-    offer     = "aviatrix-bundle-payg-china"
-    publisher = "cbcnetworks"
-    sku       = "aviatrix-enterprise-bundle-byol-china"
-    version   = "latest"
-  }
-
-  os_disk {
-    caching                   = "ReadWrite"
-    disk_size_gb              = 64
-    storage_account_type      = "Standard_LRS"
-    write_accelerator_enabled = false
-  }
+  })
 }
 
 # 8.1. Get VMSS Instance by Tag
 data "azurerm_resources" "get_vmss_instance" {
   depends_on = [
-    azurerm_orchestrated_virtual_machine_scale_set.aviatrix_scale_set
+    azapi_resource.vmss
   ]
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   type                = "Microsoft.Compute/virtualMachines"
@@ -338,7 +372,7 @@ data "azurerm_virtual_machine" "vm_data" {
 
 # 9.0. Initial Controller Configurations (occurs only on first deployment)
 module "aviatrix_controller_initialize" {
-  source                        = "github.com/AviatrixSystems/terraform-aviatrix-azure-controller//modules/aviatrix_controller_initialize?ref=v2.0.2"
+  source                        = "./aviatrix_controller_initialize"
   avx_controller_public_ip      = azurerm_public_ip.aviatrix_lb_public_ip.ip_address
   avx_controller_private_ip     = data.azurerm_virtual_machine.vm_data.private_ip_address
   avx_controller_admin_email    = var.avx_controller_admin_email
@@ -448,12 +482,13 @@ resource "azurerm_role_assignment" "aviatrix_function_vault_role" {
 
 # 11.0. Deploy Application Insights
 resource "azurerm_log_analytics_workspace" "aviatrix_controller_workspace" {
+  count               = var.log_analytics_workspace_id != "" ? 0 : 1
   name                = "${var.scale_set_controller_name}-la-workspace"
   location            = azurerm_resource_group.aviatrix_rg.location
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   sku                 = var.log_analytics_workspace_sku
-  retention_in_days   = var.log_analytics_workspace_retention_in_days
-  daily_quota_gb      = var.log_analytics_workspace_daily_quota_gb
+  retention_in_days   = var.log_analytics_workspace_sku == "Free" ? 7 : var.log_analytics_workspace_retention_in_days
+  daily_quota_gb      = var.log_analytics_workspace_sku == "Free" ? 0.5 : var.log_analytics_workspace_daily_quota_gb
 }
 
 resource "azurerm_application_insights" "application_insights" {
@@ -462,7 +497,7 @@ resource "azurerm_application_insights" "application_insights" {
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   application_type    = "web"
   retention_in_days   = 30
-  workspace_id        = azurerm_log_analytics_workspace.aviatrix_controller_workspace.workspace_id
+  workspace_id        = var.log_analytics_workspace_id != "" ? var.log_analytics_workspace_id : azurerm_log_analytics_workspace.aviatrix_controller_workspace[0].id
 }
 
 # 11.1. Deploy App Service Plan
@@ -502,7 +537,7 @@ resource "azurerm_linux_function_app" "controller_app" {
     "keyvault_secret"                 = azurerm_key_vault_secret.aviatrix_arm_secret.name,
     "storage_name"                    = azurerm_storage_account.aviatrix_controller_storage.name,
     "container_name"                  = azurerm_storage_container.aviatrix_backup_container.name,
-    "scaleset_name"                   = azurerm_orchestrated_virtual_machine_scale_set.aviatrix_scale_set.name,
+    "scaleset_name"                   = var.scale_set_controller_name,
     "lb_name"                         = var.load_balancer_name,
     "resource_group_name"             = azurerm_resource_group.aviatrix_rg.name,
     "AzureWebJobs.Backup.Disabled"    = var.disable_periodic_backup,    

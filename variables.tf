@@ -167,16 +167,28 @@ variable "avx_controller_version" {
   default     = "latest"
 }
 
+variable "log_analytics_workspace_id" {
+  type        = string
+  description = "Existing Log analytics workspace ID"
+  default     = ""
+}
+
 variable "log_analytics_workspace_sku" {
   type        = string
-  description = "Log analytics workspace SKU"
-  default     = "Free"
+  description = "Log analytics workspace SKU. Azure China only supports PerGB2018"
+  default     = "PerGB2018"
 }
 
 variable "log_analytics_workspace_retention_in_days" {
   type        = number
   description = "Log analytics workspace log retention period"
-  default     = 7
+  default     = 30
+}
+
+variable "log_analytics_workspace_daily_quota_gb" {
+  type        = number
+  description = "Log analytics workspace log retention period"
+  default     = 10
 }
 
 variable "application_insights_name" {
