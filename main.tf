@@ -574,7 +574,7 @@ resource "azurerm_monitor_diagnostic_setting" "function_diagnostics" {
 
   enabled_log {
     category         = "FunctionAppLogs"
-    retention_policy = {
+    retention_policy {
       enabled = true
       days    = 7
     }
@@ -583,7 +583,7 @@ resource "azurerm_monitor_diagnostic_setting" "function_diagnostics" {
   metric {
     category = "AllMetrics"
     enabled  = true
-    retention_policy = {
+    retention_policy {
       enabled = true
       days    = 7
     }
