@@ -572,14 +572,21 @@ resource "azurerm_monitor_diagnostic_setting" "function_diagnostics" {
   target_resource_id = azurerm_linux_function_app.controller_app.id
   log_analytics_workspace_id = var.log_analytics_workspace_id != "" ? var.log_analytics_workspace_id : azurerm_log_analytics_workspace.aviatrix_controller_workspace[0].id
 
-  log {
-    category = "FunctionAppLogs"
-    enabled  = true
+  enabled_log {
+    category         = "FunctionAppLogs"
+    retention_policy = {
+      enabled = true
+      days    = 7
+    }
   }
 
   metric {
     category = "AllMetrics"
     enabled  = true
+    retention_policy = {
+      enabled = true
+      days    = 7
+    }
   }
 }
 
