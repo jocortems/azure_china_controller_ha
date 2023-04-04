@@ -570,7 +570,7 @@ resource "azurerm_linux_function_app" "controller_app" {
 resource "azurerm_monitor_diagnostic_setting" "function_diagnostics" {
   name               = "${azurerm_linux_function_app.controller_app.name}-diagnostics"
   target_resource_id = azurerm_linux_function_app.controller_app.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.aviatrix_controller_workspace[0].id
+  log_analytics_workspace_id = var.log_analytics_workspace_id != "" ? var.log_analytics_workspace_id : azurerm_log_analytics_workspace.aviatrix_controller_workspace[0].id
 
   log {
     category = "FunctionAppLogs"
