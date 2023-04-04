@@ -25,9 +25,9 @@ def function_handler(event):
     ucc_private_ip = event["ucc_private_ip"]
     admin_email = event["admin_email"]
     new_admin_password = event["new_admin_password"]
-    arm_subscription_id = event["arm_subscription_id"]
-    arm_application_client_id = event["arm_application_client_id"]
-    arm_application_client_secret = event["arm_application_client_secret"]
+    arm_china_subscription_id = event["arm_china_subscription_id"]
+    arm_china_application_client_id = event["arm_china_application_client_id"]
+    arm_china_application_client_secret = event["arm_china_application_client_secret"]
     directory_tenant_id = event["directory_tenant_id"]
     account_email = event["account_email"]
     access_account_name = event["access_account_name"]
@@ -174,10 +174,10 @@ def function_handler(event):
         account_name=access_account_name,
         cloud_type="8",
         account_email=account_email,
-        arm_subscription_id=arm_subscription_id,
-        arm_application_endpoint=directory_tenant_id,
-        arm_application_client_id=arm_application_client_id,
-        arm_application_client_secret=arm_application_client_secret,
+        arm_china_subscription_id=arm_china_subscription_id,
+        arm_china_application_endpoint=directory_tenant_id,
+        arm_china_application_client_id=arm_china_application_client_id,
+        arm_china_application_client_secret=arm_china_application_client_secret,
     )
 
     verify_aviatrix_api_create_access_account(
@@ -748,10 +748,10 @@ def create_access_account(
     account_name="avx_access_account",
     cloud_type="2048",
     account_email="test@aviatrix.com",
-    arm_subscription_id="dsdfwbb7-1196-40bb-8435-dc2e98jriojfae8f",
-    arm_application_endpoint="4780055e-ce37-4f02-b33d-fdad8493a4b6",
-    arm_application_client_id="wfwek98f-c904-479f-def2-23ijrodsof",
-    arm_application_client_secret="abcd1234xyz",
+    arm_china_subscription_id="dsdfwbb7-1196-40bb-8435-dc2e98jriojfae8f",
+    arm_china_application_endpoint="4780055e-ce37-4f02-b33d-fdad8493a4b6",
+    arm_china_application_client_id="wfwek98f-c904-479f-def2-23ijrodsof",
+    arm_china_application_client_secret="abcd1234xyz",
 ):
     request_method = "POST"
     data = {
@@ -760,10 +760,10 @@ def create_access_account(
         "account_name": account_name,
         "cloud_type": cloud_type,
         "account_email": account_email,
-        "arm_subscription_id": arm_subscription_id,
-        "arm_application_endpoint": arm_application_endpoint,
-        "arm_application_client_id": arm_application_client_id,
-        "arm_application_client_secret": arm_application_client_secret,
+        "arm_china_subscription_id": arm_china_subscription_id,
+        "arm_china_application_endpoint": arm_china_application_endpoint,
+        "arm_china_application_client_id": arm_china_application_client_id,
+        "arm_china_application_client_secret": arm_china_application_client_secret,
     }
 
     payload_with_hidden_password = dict(data)
@@ -833,9 +833,9 @@ if __name__ == "__main__":
     ucc_private_ip = sys.argv[2]
     admin_email = sys.argv[3]
     new_admin_password = sys.argv[4]
-    arm_subscription_id = sys.argv[5]
-    arm_application_client_id = sys.argv[6]
-    arm_application_client_secret = sys.argv[7]
+    arm_china_subscription_id = sys.argv[5]
+    arm_china_application_client_id = sys.argv[6]
+    arm_china_application_client_secret = sys.argv[7]
     directory_tenant_id = sys.argv[8]
     account_email = sys.argv[9]
     access_account_name = sys.argv[10]
@@ -850,9 +850,9 @@ if __name__ == "__main__":
         "admin_email": admin_email,
         "new_admin_password": new_admin_password,
         "controller_init_version": controller_version,
-        "arm_subscription_id": arm_subscription_id,
-        "arm_application_client_id": arm_application_client_id,
-        "arm_application_client_secret": arm_application_client_secret,
+        "arm_china_subscription_id": arm_china_subscription_id,
+        "arm_china_application_client_id": arm_china_application_client_id,
+        "arm_china_application_client_secret": arm_china_application_client_secret,
         "directory_tenant_id": directory_tenant_id,
         "account_email": account_email,
         "aviatrix_customer_id": aviatrix_customer_id,
