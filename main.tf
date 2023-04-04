@@ -385,6 +385,10 @@ module "aviatrix_controller_initialize" {
   access_account_name           = var.avx_access_account_name
   aviatrix_customer_id          = var.avx_aviatrix_customer_id
   controller_version            = var.avx_controller_version
+  storage_account_name          = azurerm_storage_account.aviatrix_controller_storage.name
+  storage_account_container     = azurerm_storage_container.aviatrix_backup_container.name
+  storage_account_region        = azurerm_storage_account.aviatrix_controller_storage.location
+  multiple_backup               = local.m_backup
 }
 
 ### RBAC For Function App ###
@@ -527,7 +531,7 @@ resource "azurerm_linux_function_app" "controller_app" {
   }
 
   app_settings = {
-    "APPINSIGHTS_INSTRUMENTATIONKEY"  = azurerm_application_insights.application_insights.instrumentation_key,
+    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.application_insights.connection_string,
     "BUILD_FLAGS"                     = "UseExpressBuild",
     "XDG_CACHE_HOME"                  = "/tmp/.cache",
     "func_client_id"                  = azurerm_user_assigned_identity.aviatrix_identity.client_id,

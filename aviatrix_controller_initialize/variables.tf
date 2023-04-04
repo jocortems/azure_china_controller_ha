@@ -64,3 +64,23 @@ variable "controller_version" {
   description = "Aviatrix Controller version"
   default     = "latest"
 }
+
+variable "storage_account_name" {
+  type        = string
+  description = "Azure storage account used to store the backup"
+}
+
+variable "storage_account_container" {
+  type        = string
+  description = "Azure storage account container used to store the backup"
+}
+
+variable "storage_account_region" {
+  type        = string
+  description = "Azure region where "
+}
+
+variable "multiple_backup" {
+  type = string
+  description = "Enable multiple backups"
+}

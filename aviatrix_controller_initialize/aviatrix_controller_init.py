@@ -33,6 +33,10 @@ def function_handler(event):
     access_account_name = event["access_account_name"]
     aviatrix_customer_id = event["aviatrix_customer_id"]
     controller_init_version = event["controller_init_version"]
+    storage_account_name = event["storage_account_name"]
+    storage_account_container = event["storage_account_container"]
+    storage_account_region = event["storage_account_region"]
+    multiple_backup = event["multiple_backup"]
     wait_time = default_wait_time_for_apache_wakeup
 
     # Reconstruct some parameters
@@ -172,7 +176,7 @@ def function_handler(event):
         api_endpoint_url=api_endpoint_url,
         CID=CID,
         account_name=access_account_name,
-        cloud_type="8",
+        cloud_type="2048",
         account_email=account_email,
         arm_subscription_id=arm_subscription_id,
         arm_application_endpoint=directory_tenant_id,
@@ -185,6 +189,25 @@ def function_handler(event):
         admin_email=admin_email,
     )
     logging.info("END : Create the Access Account based on Azure ARM")
+
+    # Step12. Enable Controller Backup to Azure Storage Account
+    logging.info("START : Enable Controller backup to Azure Storage")
+    response = enable_backup(
+        api_endpoint_url=api_endpoint_url,
+        CID=CID,                
+        cloud_type="2048",
+        account_name=access_account_name,
+        storage_name=storage_account_name,
+        container_name=storage_account_container,
+        now="true",
+        multiple_backup=multiple_backup,
+        region=storage_account_region,
+    )
+
+    verify_aviatrix_api_enable_backup(
+        response=response,
+    )
+    logging.info("END : Enable Controller backup to Azure Storage")
 
 
 def wait_until_controller_api_server_is_ready(
@@ -824,6 +847,71 @@ def verify_aviatrix_api_create_access_account(
 
 # End def verify_aviatrix_api_create_access_account()
 
+def enable_backup(
+    api_endpoint_url="123.123.123.123/v1/api",
+    CID="ABCD1234",
+    cloud_type="2048",
+    account_name="avx_access_account",
+    storage_name="avx_storage_account",
+    container_name="storage_container_name",
+    now="true",
+    multiple_backup="true",
+    region="chinanorth3",
+):
+    request_method = "POST"
+    data = {
+        "action": "enable_cloudn_backup_config",
+        "CID": CID,
+        "cloud_type": cloud_type,
+        "account_name": account_name,
+        "storage_name": storage_name,
+        "container_name": container_name,
+        "now": now,
+        "multiple_backup": multiple_backup,
+        "region": region,
+    }
+
+    payload_with_hidden_password = dict(data)
+    payload_with_hidden_password["account_password"] = "************"
+
+    logging.info("API endpoint url: %s", str(api_endpoint_url))
+    logging.info("Request method is: %s", str(request_method))
+    logging.info(
+        "Request payload is : %s",
+        str(json.dumps(obj=payload_with_hidden_password, indent=4)),
+    )
+
+    response = send_aviatrix_api(
+        api_endpoint_url=api_endpoint_url,
+        request_method=request_method,
+        payload=data,
+    )
+    return response
+
+def verify_aviatrix_api_enable_backup(response=None):
+    if not response:
+        return
+    py_dict = response.json()
+    logging.info("Aviatrix API response is: %s", str(py_dict))
+
+    response_code = response.status_code
+    if response_code != 200:
+        err_msg = (
+            "Fail to enable backup. The actual response code is : "
+            + str(response_code)
+            + ", which is not 200"
+        )
+        raise AviatrixException(message=err_msg)
+    
+    api_return_boolean = py_dict["return"]
+    if api_return_boolean is not True:
+        err_msg = (
+            "Fail to run initial setup for the Aviatrix Controller. The actual api response is  "
+            + str(py_dict)
+        )
+        raise AviatrixException(message=err_msg)
+    pass
+
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s aviatrix-azure-function--- %(message)s", level=logging.INFO
@@ -841,6 +929,10 @@ if __name__ == "__main__":
     access_account_name = sys.argv[10]
     aviatrix_customer_id = sys.argv[11]
     controller_version = sys.argv[12]
+    storage_account = sys.argv[13]
+    storage_container = sys.argv[14]
+    storage_region = sys.argv[15]
+    multiple_backup = sys.argv[16]
 
     event = {
         "hostname": hostname,
@@ -857,6 +949,10 @@ if __name__ == "__main__":
         "account_email": account_email,
         "aviatrix_customer_id": aviatrix_customer_id,
         "access_account_name": access_account_name,
+        "storage_account_name": storage_account,
+        "storage_account_container": storage_container,
+        "storage_account_region": storage_region,
+        "multiple_backup": multiple_backup
     }
 
     try:

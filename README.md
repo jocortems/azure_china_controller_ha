@@ -111,6 +111,15 @@ Set environment variables ARM_ENDPOINT and ARM_ENVIRONMENT to use Azure China en
   export ARM_ENVIRONMENT=AzureChinaCloud
   ```
 
+If executing this code from a CI/CD pipeline, the following environment variables are required:
+
+``` shell
+export ARM_CLIENT_ID="00000000-0000-0000-0000-000000000000"
+export ARM_CLIENT_SECRET="00000000-0000-0000-0000-000000000000"
+export ARM_SUBSCRIPTION_ID="00000000-0000-0000-0000-000000000000"
+export ARM_TENANT_ID="00000000-0000-0000-0000-000000000000"
+```
+
 ### 3. Applying Terraform configuration
 
 ```hcl
@@ -151,6 +160,7 @@ module "aviatrix_controller_azure" {
     notification_action_group_name                 = "controllerha-functionapp-ng"          # Optional; Creates an Action Group for notifying email with Function App results. Default = "aviatrix-notify-action-group"
     enable_function_app_alerts                     = true/false                                     # Optional; Enable Function App Notifications for success, failure, exception. Default = false
     az_support                                     = true/false                                     # Required; Set to true if the Azure region supports AZ's.
+    enable_multiple_backup                         = true/false                                     # Required; whether to enable multiple backups for Aviatrix Controller
     disable_periodic_backup                        = true/false                                     # Optional; Enable Periodic backup function. Default = true
     schedule                                       = "0 0 * * * *"                                 # Optional; Creates a backup every hour by default when disable_periodic_backup is set to false. Default = "0 0 * * * *"
 }

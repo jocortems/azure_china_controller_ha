@@ -13,6 +13,11 @@ from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import SubscriptionClient
 from azure.storage.blob import BlobServiceClient
 from urllib3.exceptions import InsecureRequestWarning
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+from opencensus.ext.azure import metrics_exporter
+from opencensus.ext.azure.trace_exporter import AzureExporter
+from opencensus.trace import config_integration
+from opencensus.trace.samplers import ProbabilitySampler
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -20,6 +25,22 @@ default_wait_time_for_apache_wakeup = 300
 WAIT_DELAY = 30
 INITIAL_SETUP_DELAY = 10
 MAXIMUM_BACKUP_AGE = 24 * 3600 * 3  # 3 days
+
+# Initialize Azure Monitor Exporter for logs
+connection_string = os.environ.get('APPLICATIONINSIGHTS_CONNECTION_STRING')
+if connection_string:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logger.info)
+    handler = AzureLogHandler(connection_string=connection_string)
+    logger.addHandler(handler)
+
+# Initialize Azure Monitor Exporter for exceptions
+connection_string = os.environ.get('APPLICATIONINSIGHTS_CONNECTION_STRING')
+if connection_string:
+    exporter = AzureExporter(connection_string=connection_string)
+    config_integration.trace_integrations(['requests'])
+    sampler = ProbabilitySampler(rate=1.0)
+    exporter = AzureExporter(connection_string=connection_string)
 
 
 class AviatrixException(Exception):
@@ -73,13 +94,13 @@ def function_handler(event):
     # Get VM info in a Scaleset
     inst_name, private_nic_name = vm_scale_set_vm_info(
         vm_res_client, rg, vmScaleSetName)
-    logging.info(f'inst_name:{inst_name}')
-    logging.info(f'private_nic_name:{private_nic_name}')
+    logger.info(f'inst_name:{inst_name}')
+    logger.info(f'private_nic_name:{private_nic_name}')
     avx_int_conf = VmNetInt(rg, network_client, private_nic_name)
-    logging.info(f'avx_int_conf:{avx_int_conf}')
+    logger.info(f'avx_int_conf:{avx_int_conf}')
     old_pub_intf_id = avx_int_conf.AvxPubIntID
-    logging.info(f'old_pub_intf_id:{old_pub_intf_id}')
-    logging.info(avx_int_conf.AvxPubIntID)
+    logger.info(f'old_pub_intf_id:{old_pub_intf_id}')
+    logger.info(avx_int_conf.AvxPubIntID)
 
     # Check if blob backup file is recent and able to access blob storage
     blob_file = f"CloudN_{avx_int_conf.AvxPrivIntIP}_save_cloudx_config.enc"
@@ -90,7 +111,7 @@ def function_handler(event):
 
     version_file = (
         f"CloudN_{avx_int_conf.AvxPrivIntIP}_save_cloudx_version.txt")
-    logging.info(f"Controller version file name is {version_file}")
+    logger.info(f"Controller version file name is {version_file}")
     ctrl_version = retrieve_controller_version(version_file, container_client)
 
     # Get LoadBalacer config prior to public ip removal
@@ -106,11 +127,11 @@ def function_handler(event):
     try:
         terminate_vm(vm_res_client, rg, vm_detail.name)
     except Exception as err:
-        logging.warning(str(err))
-        logging.info("There are no running VM's in a scale set ")
+        logger.warning(str(err))
+        logger.info("There are no running VM's in a scale set ")
 
     # Increasing sku capacity
-    logging.info("Increasing sku capacity -> 1")
+    logger.info("Increasing sku capacity -> 1")
     vm_scale_set.updateSku()
 
     # Needs to be dynamic wait time for scaleset to spin up 1 more instance
@@ -132,7 +153,7 @@ def function_handler(event):
     N_avx_int_conf.deletePubIntIP()
 
     # Wait until the rest API service of Aviatrix Controller is up and running
-    logging.info(
+    logger.info(
         "START: Wait until API server of Aviatrix Controller is up and running"
     )
 
@@ -147,12 +168,12 @@ def function_handler(event):
         total_wait_time=wait_time,
         interval_wait_time=10,
     )
-    logging.info(
+    logger.info(
         "ENDED: Wait until API server of controller is up and running")
 
     # Login Aviatrix Controller with username:
     # Admin and password: private ip address and verify login
-    logging.info(
+    logger.info(
         "START: Login Aviatrix Controller as admin using private ip address")
     response = login(
         api_endpoint_url=api_endpoint_url,
@@ -163,11 +184,11 @@ def function_handler(event):
 
     verify_aviatrix_api_response_login(response=response)
     CID = response.json()["CID"]
-    logging.info(
+    logger.info(
         "END: Login Aviatrix Controller as admin using private ip address")
 
     # Check if the controller has been initialized or not
-    logging.info(
+    logger.info(
         "START: Check if Aviatrix Controller has already been initialized")
     is_controller_initialized = has_controller_initialized(
         api_endpoint_url=api_endpoint_url,
@@ -176,25 +197,25 @@ def function_handler(event):
 
     if is_controller_initialized:
         err_msg = "ERROR: Controller has already been initialized"
-        logging.error(err_msg)
+        logger.error(err_msg)
         raise AviatrixException(message=err_msg)
 
-    logging.info(
+    logger.info(
         "END: Check if Aviatrix Controller has already been initialized")
 
     # Initial Setup for Aviatrix Controller by Invoking Aviatrix API
-    logging.info("Start: Aviatrix Controller initial setup")
+    logger.info("Start: Aviatrix Controller initial setup")
     response = run_initial_setup(
         api_endpoint_url=api_endpoint_url,
         CID=CID,
         target_version=ctrl_version,
     )
     verify_aviatrix_api_run_initial_setup(response=response)
-    logging.info("End: Aviatrix Controller initial setup")
+    logger.info("End: Aviatrix Controller initial setup")
 
     # Wait until apache server of controller is up and running after
     # initial setup.
-    logging.info(
+    logger.info(
         ("START: Wait until API server of Aviatrix Controller "
          "is up and running after initial setup")
     )
@@ -205,13 +226,13 @@ def function_handler(event):
         total_wait_time=wait_time,
         interval_wait_time=10,
     )
-    logging.info(
+    logger.info(
         ("End: Wait until API server of Aviatrix Controller "
          "is up and running after initial setup")
     )
 
     # Re-login
-    logging.info("START: Re-login")
+    logger.info("START: Re-login")
     response = login(
         api_endpoint_url=api_endpoint_url,
         username="admin",
@@ -219,13 +240,13 @@ def function_handler(event):
     )
     verify_aviatrix_api_response_login(response=response)
     CID = response.json()["CID"]
-    logging.info("END: Re-login")
+    logger.info("END: Re-login")
 
     # Restore backup
-    logging.info("START: Restore-Backup")
+    logger.info("START: Restore-Backup")
     restore_ctrl_backup(cred, hostname, CID, storage_name,
                         container_name, blob_file)
-    logging.info("END: Restore-Backup")
+    logger.info("END: Restore-Backup")
 
 
 def wait_until_controller_api_server_is_ready(
@@ -280,7 +301,7 @@ def wait_until_controller_api_server_is_ready(
             #           which means the server is ready
             if response is not None:
                 response_status_code = response.status_code
-                logging.info(f"Server status code is: "
+                logger.info(f"Server status code is: "
                              f"{str(response_status_code)}")
                 py_dict = response.json()
                 if 'CID' in py_dict:
@@ -302,7 +323,7 @@ def wait_until_controller_api_server_is_ready(
                         )
                 ):
                     is_api_service_ready = False
-                    logging.info(
+                    logger.info(
                         f"Server is not ready, and the response is "
                         f":{response_message}")
                 # case2:
@@ -312,10 +333,10 @@ def wait_until_controller_api_server_is_ready(
 
             # if the response code is 200 and the server is ready
             if is_apache_returned_200 and is_api_service_ready:
-                logging.info("Server is ready")
+                logger.info("Server is ready")
                 return True
         except Exception as e:
-            logging.exception(
+            logger.exception(
                 f"Aviatrix Controller {api_endpoint_url} is not available")
             last_err_msg = str(e)
             pass
@@ -369,7 +390,7 @@ def verify_aviatrix_api_response_login(response=None):
     py_dict = response.json()
     if 'CID' in py_dict:
         py_dict["CID"] = "*********"
-    logging.info(f"Aviatrix API response is {str(py_dict)}")
+    logger.info(f"Aviatrix API response is {str(py_dict)}")
 
     response_code = response.status_code
     if response_code != 200:
@@ -411,18 +432,18 @@ def login(
 ):
     request_method = "POST"
     data = {"action": "login", "username": username, "password": password}
-    logging.info(f"API endpoint url is : {api_endpoint_url}")
-    logging.info(f"Request method is : {request_method}")
+    logger.info(f"API endpoint url is : {api_endpoint_url}")
+    logger.info(f"Request method is : {request_method}")
 
     # handle if the hide_password is selected
     if hide_password:
         payload_with_hidden_password = dict(data)
         payload_with_hidden_password["password"] = "************"
-        logging.info(
+        logger.info(
             f"Request payload: "
             f"{str(json.dumps(obj=payload_with_hidden_password, indent=4))}")
     else:
-        logging.info(f"Request payload: "
+        logger.info(f"Request payload: "
                      f"{str(json.dumps(obj=data, indent=4))}")
 
     # send post request to the api endpoint
@@ -464,15 +485,15 @@ def send_aviatrix_api(
             else:
                 failure_reason = (f"ERROR : Bad HTTPS request type: "
                                   f"{request_type}")
-                logging.error(failure_reason)
+                logger.error(failure_reason)
         except requests.exceptions.Timeout as e:
-            logging.warning(f"WARNING: Request timeout... {str(e)}")
+            logger.warning(f"WARNING: Request timeout... {str(e)}")
             responses.append(str(e))
         except requests.exceptions.ConnectionError as e:
-            logging.warning(f"WARNING: Server is not responding... {str(e)}")
+            logger.warning(f"WARNING: Server is not responding... {str(e)}")
             responses.append(str(e))
         except Exception as e:
-            logging.warning(f"HTTP request failed {str(e)}")
+            logger.warning(f"HTTP request failed {str(e)}")
             # For error message/debugging purposes
 
         finally:
@@ -480,7 +501,7 @@ def send_aviatrix_api(
                 return response
             elif response_status_code == 404:
                 failure_reason = "ERROR: 404 Not Found"
-                logging.error(failure_reason)
+                logger.error(failure_reason)
 
             # if the response code is neither 200 nor 404, retry process
             # the default retry count is 5, the wait for each retry is i
@@ -488,13 +509,13 @@ def send_aviatrix_api(
             # wait time   =     1  2  4  8
 
             if i + 1 < retry_count:
-                logging.info("START: retry")
-                logging.info("i == %d", i)
+                logger.info("START: retry")
+                logger.info("i == %d", i)
                 wait_time_before_retry = pow(2, i)
-                logging.info("Wait for: %ds for the next retry",
+                logger.info("Wait for: %ds for the next retry",
                              wait_time_before_retry)
                 time.sleep(wait_time_before_retry)
-                logging.info("ENDED: Wait until retry")
+                logger.info("ENDED: Wait until retry")
                 # continue next iteration
             else:
                 failure_reason = (
@@ -517,7 +538,7 @@ def verify_aviatrix_api_run_initial_setup(response=None):
     py_dict = response.json()
     if 'CID' in py_dict:
         py_dict["CID"] = "*********"
-    logging.info(f"Aviatrix API response is: {str(py_dict)}")
+    logger.info(f"Aviatrix API response is: {str(py_dict)}")
 
     response_code = response.status_code
     if response_code != 200:
@@ -549,9 +570,9 @@ def has_controller_initialized(
     data = {"action": "initial_setup", "subaction": "check", "CID": CID}
     payload_with_hidden_password = dict(data)
     payload_with_hidden_password["CID"] = "************"
-    logging.info(f"API endpoint url: {str(api_endpoint_url)}")
-    logging.info(f"Request method is: {str(request_method)}")
-    logging.info(
+    logger.info(f"API endpoint url: {str(api_endpoint_url)}")
+    logger.info(f"Request method is: {str(request_method)}")
+    logger.info(
         f"Request payload is : "
         f"{str(json.dumps(obj=payload_with_hidden_password, indent=4))}")
     response = send_aviatrix_api(
@@ -563,7 +584,7 @@ def has_controller_initialized(
     py_dict = response.json()
     if 'CID' in py_dict:
         py_dict["CID"] = "*********"
-    logging.info(f"Aviatrix API response is: {str(py_dict)}")
+    logger.info(f"Aviatrix API response is: {str(py_dict)}")
 
     if py_dict["return"] is False and "not run" in py_dict["reason"]:
         return False
@@ -592,7 +613,7 @@ class VmScaleSet():
                 self.resource_group, self.scaleSetName, self.vmScaleSet)
             response.wait()
             if response.status() == 'Succeeded':
-                logging.info(f"Updated sku capacity: "
+                logger.info(f"Updated sku capacity: "
                              f"{str(self.vmScaleSet.sku.capacity)}\n")
                 # returns {'additional_properties': {},
                 # 'name': 'Standard_A4_v2',
@@ -600,7 +621,7 @@ class VmScaleSet():
                 # 'capacity': 1}
                 return self.sku
         except Exception as err:
-            logging.warning(str(err))
+            logger.warning(str(err))
 
 
 # As a prevalidation :
@@ -636,7 +657,7 @@ class VmNetInt():
         inf_conf_model = self.Pri_intf_conf
         inf_conf_model.ip_configurations[0].public_ip_address = None
         try:
-            logging.info(
+            logger.info(
                 f"START: Dissociating {self.AvxPubIntName} : "
                 f"{self.AvxPubIntIP} from {self.AvxPrivIntIP}")
             response = (
@@ -644,9 +665,9 @@ class VmNetInt():
                     self.resource_group, self.vm_intf_name, inf_conf_model))
             response.wait()
             if response.status() == 'Succeeded':
-                logging.info("End: Dissociating completed successfully\n")
+                logger.info("End: Dissociating completed successfully\n")
         except Exception as err:
-            logging.warning(str(err))
+            logger.warning(str(err))
 
     def addPubIntIPAssoc(self, old_public_ip_name):
         """ Associates old public IP to the new vm """
@@ -654,7 +675,7 @@ class VmNetInt():
         inf_conf_model = self.Pri_intf_conf
         inf_conf_model.ip_configurations[0].public_ip_address = params
         try:
-            logging.info(f"START: Associating "
+            logger.info(f"START: Associating "
                          f"{old_public_ip_name.split('/')[-1]} "
                          f" with {self.AvxPrivIntIP}")
             response = (
@@ -662,23 +683,23 @@ class VmNetInt():
                     self.resource_group, self.vm_intf_name, inf_conf_model))
             response.wait()
             if response.status() == 'Succeeded':
-                logging.info("End: Associating completed successfully\n")
+                logger.info("End: Associating completed successfully\n")
         except Exception as err:
-            logging.warning(str(err))
+            logger.warning(str(err))
 
     def deletePubIntIP(self):
         """ Deletes the public IP """
         try:
-            logging.info(
+            logger.info(
                 f"START: Deleting newly created {self.AvxPubIntName} : "
                 f"{self.AvxPubIntIP} from {self.resource_group}")
             response = self.network_client.public_ip_addresses.begin_delete(
                 self.resource_group, self.AvxPubIntName)
             response.wait()
             if response.status() == 'Succeeded':
-                logging.info("End: Deleting public ip successfully\n")
+                logger.info("End: Deleting public ip successfully\n")
         except Exception as err:
-            logging.warning(str(err))
+            logger.warning(str(err))
 
 
 class LbConf():
@@ -710,14 +731,14 @@ class LbConf():
 def terminate_vm(vm_client, resource_group, vm_name):
     """ Terminates a vm in the specified resource group """
     try:
-        logging.info(f"START: Terminating instance {vm_name} "
+        logger.info(f"START: Terminating instance {vm_name} "
                      f"from resource group {resource_group}")
         response = vm_client.begin_delete(resource_group, vm_name)
         response.wait()
         if response.status() == 'Succeeded':
-            logging.info("End: Terminated instance successfully\n")
+            logger.info("End: Terminated instance successfully\n")
     except Exception as err:
-        logging.warning(str(err))
+        logger.warning(str(err))
 
 
 def vm_scale_set_vm_info(vm_client, resource_group, scaleSetName):
@@ -741,7 +762,7 @@ def run_initial_setup(api_endpoint_url="123.123.123.123/v1/api",
     #       --> no --> run init setup (upgrading to latest controller version)
     request_method = "POST"
     data = {"action": "initial_setup", "CID": CID, "subaction": "check"}
-    logging.info("Check if the initial setup has been already done or not")
+    logger.info("Check if the initial setup has been already done or not")
     response = send_aviatrix_api(
         api_endpoint_url=api_endpoint_url,
         request_method=request_method,
@@ -752,7 +773,7 @@ def run_initial_setup(api_endpoint_url="123.123.123.123/v1/api",
         py_dict["CID"] = "*********"
     # The initial setup has been done
     if py_dict["return"] is True:
-        logging.info(
+        logger.info(
             "Initial setup for Aviatrix Controller has been already done")
         return response
 
@@ -765,9 +786,9 @@ def run_initial_setup(api_endpoint_url="123.123.123.123/v1/api",
     }
     payload_with_hidden_password = dict(data)
     payload_with_hidden_password["CID"] = "********"
-    logging.info(f"API endpoint url: {str(api_endpoint_url)}")
-    logging.info(f"Request method is: {str(request_method)}")
-    logging.info(
+    logger.info(f"API endpoint url: {str(api_endpoint_url)}")
+    logger.info(f"Request method is: {str(request_method)}")
+    logger.info(
         f"Request payload is : "
         f"{str(json.dumps(obj=payload_with_hidden_password, indent=4))}")
     try:
@@ -783,7 +804,7 @@ def run_initial_setup(api_endpoint_url="123.123.123.123/v1/api",
         if "Read timed out" in str(ae):
             return None
     except Exception as err:
-        logging.info(f"Error occurred during initial setup: {str(err)}")
+        logger.info(f"Error occurred during initial setup: {str(err)}")
         raise
     return response
 
@@ -792,15 +813,15 @@ def run_initial_setup(api_endpoint_url="123.123.123.123/v1/api",
 
 def retrieve_controller_version(version_file, container_client):
     """ Get the controller version from backup file"""
-    logging.info(f"Retrieving version from file {str(version_file)}")
+    logger.info(f"Retrieving version from file {str(version_file)}")
     s3c = container_client.get_blob_client(version_file)
     try:
         with open('/tmp/version_ctrlha.txt', 'wb') as data:
             s3c.download_blob().readinto(data)
 
     except Exception as err:
-        logging.warning(str(err))
-        logging.info("The object does not exist.")
+        logger.warning(str(err))
+        logger.info("The object does not exist.")
         raise
 
     if not os.path.exists('/tmp/version_ctrlha.txt'):
@@ -808,19 +829,19 @@ def retrieve_controller_version(version_file, container_client):
 
     with open("/tmp/version_ctrlha.txt") as fileh:
         buf = fileh.read()
-    logging.info(f"Retrieved version {str(buf)}")
+    logger.info(f"Retrieved version {str(buf)}")
 
     if not buf:
         raise AviatrixException("  Version file is empty")
-    logging.info("Parsing version")
+    logger.info("Parsing version")
 
     try:
         ctrl_version = ".".join((buf[12:]).split("."))
     except (KeyboardInterrupt, IndexError, ValueError) as err:
         raise AviatrixException("Could not decode version") from err
     else:
-        logging.info(f"Parsed version sucessfully {str(ctrl_version)}")
-        logging.warning("")
+        logger.info(f"Parsed version sucessfully {str(ctrl_version)}")
+        logger.warning("")
         return ctrl_version
 
 
@@ -831,19 +852,19 @@ def is_backup_file_is_recent(backup_file, container_client):
         try:
             file_obj = s3c.get_blob_properties()
         except Exception as err:
-            logging.warning(str(err))
+            logger.warning(str(err))
             return False
 
         age = time.time() - file_obj.last_modified.timestamp()
         if age < MAXIMUM_BACKUP_AGE:
-            logging.info("Succesfully validated Backup file age\n")
+            logger.info("Succesfully validated Backup file age\n")
             return True
-        logging.warning(
+        logger.warning(
             f"File age {age} is older than the maximum allowed value of "
             f"{MAXIMUM_BACKUP_AGE}")
         return False
     except Exception as err:
-        logging.warning(f"  Checking backup file age failed due to {str(err)}")
+        logger.warning(f"  Checking backup file age failed due to {str(err)}")
         return False
 
 
@@ -863,7 +884,7 @@ def restore_ctrl_backup(creds, controller_ip, cid, storage, container, blob):
     payload_with_hidden_password = dict(post_data)
     payload_with_hidden_password["CID"] = "********"
     payload_with_hidden_password["arm_application_client_secret"] = "********"
-    logging.info(
+    logger.info(
         f"Trying to restore backup account with data "
         f"{str(json.dumps(obj=payload_with_hidden_password, indent=4))}\n")
 
@@ -871,12 +892,12 @@ def restore_ctrl_backup(creds, controller_ip, cid, storage, container, blob):
         response = requests.post(
             base_url, data=post_data, timeout=120, verify=False)
     except requests.Timeout:
-        logging.info("Restoring backup timed out. "
+        logger.info("Restoring backup timed out. "
                      "Please check the controller for updated config.")
         pass
     except requests.exceptions.ConnectionError as err:
         if "Remote end closed connection without response" in str(err):
-            logging.info("Server closed the connection while executing "
+            logger.info("Server closed the connection while executing "
                          "create account API. Ignoring response")
             output = {"return": True,
                       'reason': 'Warning!! Server closed the connection'}
@@ -884,26 +905,35 @@ def restore_ctrl_backup(creds, controller_ip, cid, storage, container, blob):
         else:
             output = {"return": False, "reason": str(err)}
     except Exception as err:
-        logging.info(f"An Error has occurred: {str(err)}")
+        logger.info(f"An Error has occurred: {str(err)}")
         raise
     else:
         output = response.json()
-        logging.info(output)
+        logger.info(output)
         return output
 
 
 def main(req: func.HttpRequest, context: func.Context) -> func.HttpResponse:
+    # Initialize Azure Monitor Exporter for logs
+    if connection_string:
+        logger.addHandler(handler)
+
+    # Initialize Azure Monitor Exporter for exceptions
+    if connection_string:
+        tracer = Tracer(exporter=exporter, sampler=sampler)
+        requests.Session().mount('http://', requests.adapters.HTTPAdapter(max_retries=3))
+
     logging.basicConfig(
         format="%(asctime)s aviatrix-azure-function--- %(message)s",
-        level=logging.INFO
+        level=logger.info
     )
-    logging.info(
+    logger.info(
         f"Version : {version.VERSION} invocation_id : {context.invocation_id}")
     req_body = req.get_json()
     headers = {"invocation_id": context.invocation_id,
                "alert_status": req_body['data']['status']}
     if not req_body['data']['status'] == 'Activated':
-        logging.warning(f"Alert status type: {req_body['data']['status']}")
+        logger.warning(f"Alert status type: {req_body['data']['status']}")
         return func.HttpResponse(
             "HA failover event is not triggered",
             headers=headers, status_code=501)
@@ -925,10 +955,10 @@ def main(req: func.HttpRequest, context: func.Context) -> func.HttpResponse:
     try:
         function_handler(event)
     except Exception as err:
-        logging.exception(f"Error has occurred: {str(err)}")
+        logger.exception(f"Error has occurred: {str(err)}")
     else:
-        logging.info("Aviatrix Controller has been initialized successfully")
-        logging.info("Loading function completed !!")
+        logger.info("Aviatrix Controller has been initialized successfully")
+        logger.info("Loading function completed !!")
         return func.HttpResponse(
             "Failover event completed successfully",
             headers=headers, status_code=200)

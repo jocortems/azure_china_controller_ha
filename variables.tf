@@ -158,7 +158,6 @@ variable "avx_controller_admin_password" {
   type        = string
   description = "aviatrix controller admin password"
   default     = ""
-  sensitive   = true
 }
 
 variable "avx_controller_version" {
@@ -256,6 +255,11 @@ variable "disable_periodic_backup" {
   default     = true
 }
 
+variable "enable_multiple_backup" {
+  type        = bool
+  description = "Choose whether to enable multiple backups for the controller"
+}
+
 variable "schedule" {
   type        = string
   description = "The cron timer syntax for periodic backup."
@@ -264,4 +268,5 @@ variable "schedule" {
 
 locals {
   provisionerIP = [replace(data.http.my_ip.response_body,"\n","/32")]
+  m_backup = var.enable_multiple_backup ? "true" : "false"
 }

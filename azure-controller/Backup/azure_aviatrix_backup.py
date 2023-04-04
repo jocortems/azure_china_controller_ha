@@ -12,8 +12,29 @@ from azure.keyvault.secrets import SecretClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import SubscriptionClient
 from urllib3.exceptions import InsecureRequestWarning
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+from opencensus.ext.azure import metrics_exporter
+from opencensus.ext.azure.trace_exporter import AzureExporter
+from opencensus.trace import config_integration
+from opencensus.trace.samplers import ProbabilitySampler
 
 urllib3.disable_warnings(InsecureRequestWarning)
+
+# Initialize Azure Monitor Exporter for logs
+connection_string = os.environ.get('APPLICATIONINSIGHTS_CONNECTION_STRING')
+if connection_string:
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logger.info)
+    handler = AzureLogHandler(connection_string=connection_string)
+    logger.addHandler(handler)
+
+# Initialize Azure Monitor Exporter for exceptions
+connection_string = os.environ.get('APPLICATIONINSIGHTS_CONNECTION_STRING')
+if connection_string:
+    exporter = AzureExporter(connection_string=connection_string)
+    config_integration.trace_integrations(['requests'])
+    sampler = ProbabilitySampler(rate=1.0)
+    exporter = AzureExporter(connection_string=connection_string)
 
 
 class AviatrixException(Exception):
@@ -46,7 +67,7 @@ def function_handler(event):
     api_endpoint_url = (
         f"https://{hostname}/{aviatrix_api_version}/{aviatrix_api_route}"
     )
-    logging.info(
+    logger.info(
         "START: Login Aviatrix Controller as admin")
     response = login(
         api_endpoint_url=api_endpoint_url,
@@ -57,17 +78,17 @@ def function_handler(event):
 
     verify_aviatrix_api_response_login(response=response)
     CID = response.json()["CID"]
-    logging.info(
+    logger.info(
         "END: Login Aviatrix Controller as admin")
 
-    logging.info("START: Starting Backup")
+    logger.info("START: Starting Backup")
     try:
         enable_backup(
             api_endpoint_url=api_endpoint_url,
             CID=CID)
     except Exception as err:
-        logging.warning(str(err))
-        logging.info("END: Starting Backup")
+        logger.warning(str(err))
+        logger.info("END: Starting Backup")
 
 
 def verify_aviatrix_api_response_login(response=None):
@@ -79,7 +100,7 @@ def verify_aviatrix_api_response_login(response=None):
     py_dict = response.json()
     if 'CID' in py_dict:
         py_dict["CID"] = "*********"
-    logging.info(f"Aviatrix API response is {str(py_dict)}")
+    logger.info(f"Aviatrix API response is {str(py_dict)}")
 
     response_code = response.status_code
     if response_code != 200:
@@ -121,17 +142,17 @@ def login(
 ):
     request_method = "POST"
     data = {"action": "login", "username": username, "password": password}
-    logging.info(f"API endpoint url is : {api_endpoint_url}")
+    logger.info(f"API endpoint url is : {api_endpoint_url}")
 
     # handle if the hide_password is selected
     if hide_password:
         payload_with_hidden_password = dict(data)
         payload_with_hidden_password["password"] = "************"
-        logging.info(
+        logger.info(
             f"Request payload: "
             f"{str(json.dumps(obj=payload_with_hidden_password, indent=4))}")
     else:
-        logging.info(f"Request payload: "
+        logger.info(f"Request payload: "
                      f"{str(json.dumps(obj=data, indent=4))}")
 
     # send post request to the api endpoint
@@ -173,15 +194,15 @@ def send_aviatrix_api(
             else:
                 failure_reason = (f"ERROR : Bad HTTPS request type: "
                                   f"{request_type}")
-                logging.error(failure_reason)
+                logger.error(failure_reason)
         except requests.exceptions.Timeout as e:
-            logging.warning(f"WARNING: Request timeout... {str(e)}")
+            logger.warning(f"WARNING: Request timeout... {str(e)}")
             responses.append(str(e))
         except requests.exceptions.ConnectionError as e:
-            logging.warning(f"WARNING: Server is not responding... {str(e)}")
+            logger.warning(f"WARNING: Server is not responding... {str(e)}")
             responses.append(str(e))
         except Exception as e:
-            logging.warning(f"HTTP request failed {str(e)}")
+            logger.warning(f"HTTP request failed {str(e)}")
             # For error message/debugging purposes
 
         finally:
@@ -189,7 +210,7 @@ def send_aviatrix_api(
                 return response
             elif response_status_code == 404:
                 failure_reason = "ERROR: 404 Not Found"
-                logging.error(failure_reason)
+                logger.error(failure_reason)
 
             # if the response code is neither 200 nor 404, retry process
             # the default retry count is 5, the wait for each retry is i
@@ -197,13 +218,13 @@ def send_aviatrix_api(
             # wait time   =     1  2  4  8
 
             if i + 1 < retry_count:
-                logging.info("START: retry")
-                logging.info("i == %d", i)
+                logger.info("START: retry")
+                logger.info("i == %d", i)
                 wait_time_before_retry = pow(2, i)
-                logging.info("Wait for: %ds for the next retry",
+                logger.info("Wait for: %ds for the next retry",
                              wait_time_before_retry)
                 time.sleep(wait_time_before_retry)
-                logging.info("ENDED: Wait until retry")
+                logger.info("ENDED: Wait until retry")
                 # continue next iteration
             else:
                 failure_reason = (
@@ -252,12 +273,12 @@ def enable_backup(
 ):
     request_method = "GET"
     data = {"action": "get_cloudn_backup_config", "CID": CID}
-    logging.info(f"API endpoint url is : {api_endpoint_url}")
-    logging.info(f"Request method is : {request_method}")
+    logger.info(f"API endpoint url is : {api_endpoint_url}")
+    logger.info(f"Request method is : {request_method}")
     payload_with_hidden_password = dict(data)
     payload_with_hidden_password["CID"] = "********"
     formatted_payload = json.dumps(obj=payload_with_hidden_password, indent=4)
-    logging.info(f"Request method is : {str(formatted_payload)}")
+    logger.info(f"Request method is : {str(formatted_payload)}")
     response = send_aviatrix_api(
         api_endpoint_url=api_endpoint_url,
         request_method=request_method,
@@ -265,7 +286,7 @@ def enable_backup(
     )
 
     py_dict = response.json()
-    logging.info("Aviatrix API response is: %s", str(py_dict))
+    logger.info("Aviatrix API response is: %s", str(py_dict))
     if (py_dict["return"] is True) and (
             py_dict["results"]["enabled"] == "yes"):
         config = {}
@@ -282,10 +303,10 @@ def enable_backup(
             data.update(config)
             payload_with_hidden_password = dict(data)
             payload_with_hidden_password["CID"] = "********"
-            logging.info(f"API endpoint url is : {api_endpoint_url}")
+            logger.info(f"API endpoint url is : {api_endpoint_url}")
             formatted_payload = json.dumps(obj=payload_with_hidden_password,
                                            indent=4)
-            logging.info(f"Request method is : {str(formatted_payload)}")
+            logger.info(f"Request method is : {str(formatted_payload)}")
 
             response = send_aviatrix_api(
                 api_endpoint_url=api_endpoint_url,
@@ -293,23 +314,32 @@ def enable_backup(
                 payload=data,
             )
             py_dict = response.json()
-            logging.info("Aviatrix API response is: %s", str(py_dict))
+            logger.info("Aviatrix API response is: %s", str(py_dict))
         except Exception as e:
-            logging.info(e)
+            logger.info(e)
     else:
         output = {"return": False, "reason": "Backup is not enabled"}
-        logging.warning(output)
+        logger.warning(output)
         return output
 
 
 def main(mytimer: func.TimerRequest) -> None:
+    # Initialize Azure Monitor Exporter for logs
+    if connection_string:
+        logger.addHandler(handler)
+
+    # Initialize Azure Monitor Exporter for exceptions
+    if connection_string:
+        tracer = Tracer(exporter=exporter, sampler=sampler)
+        requests.Session().mount('http://', requests.adapters.HTTPAdapter(max_retries=3))
+
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
     logging.basicConfig(
         format="%(asctime)s aviatrix-azure-function--- %(message)s",
-        level=logging.INFO
+        level=logger.info
     )
-    logging.info(
+    logger.info(
         f"Version : {version.VERSION} Backup triggered at {utc_timestamp}")
     event = {
         "aviatrix_api_version": "v1",
@@ -324,4 +354,4 @@ def main(mytimer: func.TimerRequest) -> None:
     try:
         function_handler(event)
     except Exception as err:
-        logging.error(f"Error has occurred: {str(err)}")
+        logger.error(f"Error has occurred: {str(err)}")
