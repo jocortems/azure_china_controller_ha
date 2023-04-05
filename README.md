@@ -108,7 +108,7 @@ Set environment variables ARM_ENDPOINT and ARM_ENVIRONMENT to use Azure China en
 
   ``` shell
   export ARM_ENDPOINT=https://management.chinacloudapi.cn
-  export ARM_ENVIRONMENT=AzureChinaCloud
+  export ARM_ENVIRONMENT=china
   ```
 
 If executing this code from a CI/CD pipeline, the following environment variables are required:

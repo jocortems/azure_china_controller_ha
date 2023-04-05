@@ -843,7 +843,6 @@ def verify_aviatrix_api_create_access_account(
             message=avx_err_msg,
         )
 
-
 # End def verify_aviatrix_api_create_access_account()
 
 def enable_backup(
@@ -877,6 +876,9 @@ def enable_backup(
         "Request payload is : %s",
         str(json.dumps(obj=payload_with_hidden_password, indent=4)),
     )
+
+    #Wait for 60 seconds to make sure the access_account has been created. access_account is needed to enable backup
+    time.sleep(60)
 
     response = send_aviatrix_api(
         api_endpoint_url=api_endpoint_url,
