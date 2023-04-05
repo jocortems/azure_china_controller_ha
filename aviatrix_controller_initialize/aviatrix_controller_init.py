@@ -190,6 +190,8 @@ def function_handler(event):
     )
     logging.info("END : Create the Access Account based on Azure ARM")
 
+    time.sleep(60)
+
     # Step12. Enable Controller Backup to Azure Storage Account
     logging.info("START : Enable Controller backup to Azure Storage")
     response = enable_backup(
@@ -202,6 +204,7 @@ def function_handler(event):
         now="true",
         multiple_backup=multiple_backup,
         region=storage_account_region,
+        bucket_name="",
     )
 
     verify_aviatrix_api_enable_backup(
@@ -857,6 +860,7 @@ def enable_backup(
     now="true",
     multiple_backup="true",
     region="China North 3",
+    bucket_name="",
 ):
     request_method = "POST"
     data = {
@@ -869,6 +873,7 @@ def enable_backup(
         "now": now,
         "multiple": multiple_backup,
         "region": region,
+        "bucket_name": bucket_name,
     }
 
     payload_with_hidden_password = dict(data)
