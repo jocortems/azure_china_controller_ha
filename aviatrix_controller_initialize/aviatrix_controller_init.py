@@ -199,10 +199,8 @@ def function_handler(event):
         account_name=access_account_name,
         storage_name=storage_account_name,
         container_name=storage_account_container,
-        now="false",
         multiple_backup=multiple_backup,
         region=storage_account_region,
-        bucket_name="",
     )
 
     verify_aviatrix_api_enable_backup(
@@ -855,10 +853,8 @@ def enable_backup(
     account_name="avx_access_account",
     storage_name="avx_storage_account",
     container_name="storage_container_name",
-    now="false",
     multiple_backup="true",
     region="China North 3",
-    bucket_name="",
 ):
     request_method = "POST"
     data = {
@@ -868,10 +864,8 @@ def enable_backup(
         "account_name": account_name,
         "storage_name": storage_name,
         "container_name": container_name,
-        "now": now,
         "multiple": multiple_backup,
         "region": region,
-        "bucket_name": bucket_name,
     }
 
     payload_with_hidden_password = dict(data)
