@@ -373,7 +373,7 @@ data "azurerm_virtual_machine" "vm_data" {
 # 9.0. Initial Controller Configurations (occurs only on first deployment)
 module "aviatrix_controller_initialize" {
   source                        = "./aviatrix_controller_initialize"
-  avx_controller_public_ip      = azurerm_public_ip.aviatrix_lb_public_ip.ip_address
+  avx_controller_public_ip      = data.azurerm_virtual_machine.vm_data.public_ip_address
   avx_controller_private_ip     = data.azurerm_virtual_machine.vm_data.private_ip_address
   avx_controller_admin_email    = var.avx_controller_admin_email
   avx_controller_admin_password = var.avx_controller_admin_password == "" ? random_password.generate_controller_secret[0].result : var.avx_controller_admin_password

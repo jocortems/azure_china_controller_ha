@@ -877,9 +877,6 @@ def enable_backup(
         str(json.dumps(obj=payload_with_hidden_password, indent=4)),
     )
 
-    #Wait for 60 seconds to make sure the access_account has been created. access_account is needed to enable backup
-    time.sleep(60)
-
     response = send_aviatrix_api(
         api_endpoint_url=api_endpoint_url,
         request_method=request_method,
