@@ -1,4 +1,4 @@
-# Launch an Aviatrix Controller in Azure with High Availability
+# Launch an Aviatrix Controller in Azure China with High Availability
 
 ## Description
 
@@ -53,7 +53,7 @@ This Terraform module:
 
 Module  | Description |
 | ------- | ----------- |
-|[aviatrix_controller_initialize](https://github.com/AviatrixSystems/terraform-aviatrix-azure-controller/tree/master/modules/aviatrix_controller_initialize) | Initializes the Aviatrix Controller (setting admin email, setting admin password, upgrading controller version, and setting up access account, setting up backup to an azure storage account) |
+|[aviatrix_controller_initialize](https://github.com/jocortems/azure_china_controller_ha/tree/main/aviatrix_controller_initialize) | Initializes the Aviatrix Controller (setting admin email, setting admin password, upgrading controller version, and setting up access account, setting up backup to an azure storage account) |
 
 ## Procedures for Building and Initializing a Controller in Azure
 
