@@ -233,7 +233,7 @@ resource "azurerm_network_security_rule" "user_defined_rules" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "443"
-  source_address_prefixes     = concat(local.provisionerIP, var.aviatrix_controller_security_group_allowed_ips)
+  source_address_prefixes     = local.allowed_ips
   destination_address_prefix  = "*"
   description                 = "httpsInboundToControllerScaleSet"
 }

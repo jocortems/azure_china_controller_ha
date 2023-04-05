@@ -4,17 +4,22 @@
 
 ### Note:
 
-This Terraform module has some modifications to the original module posted in the official AviatrixSystems Github repository [here](https://github.com/AviatrixSystems/Azure_Controller_HA). Mainly this module doesn't deploy a service principal, it requires the Service Principal to be created, and to pass the Serivce Principal and Secret as variables; additionally, it uses the latest Azure Terraform provider resources, and automatically adds the IP Address of the system that runs this code to the NSG of the Aviatrix Controller. It also adds logic to the null_resource that deploys the Azure Function to try deploying up to 5 times, this is needed because in the original code the script results in error *"Timed out waiting for SCM to update Environment Settings"* and requires to run `Terraform apply` twice. See [here](https://github.com/Azure/azure-functions-core-tools/issues/1863) for more details on this issue
+This Terraform module includes the required modifications to module [Azure-Controller-HA](https://github.com/AviatrixSystems/Azure_Controller_HA) to deploy the artifacts in Azure China Cloud. In addition to that, this module doesn't deploy a service principal; it requires the Service Principal to be created before using this module. It automatically adds the IP Address of the system that runs this code to the NSG of the Aviatrix Controller. It also adds logic to the null_resource that deploys the Azure Function to try deploying up to 5 times, this is needed because in the original code the script results in error *"Timed out waiting for SCM to update Environment Settings"* and requires to run `Terraform apply` twice. See <https://github.com/Azure/azure-functions-core-tools/issues/1863> for more details on this issue
+
+Module [terraform-aviatrix-azure-controller](https://github.com/AviatrixSystems/terraform-aviatrix-azure-controller) has been modified to allow initializing a controller deployed in Azure China Cloud. The modified code is included in this Github repository.
 
 This Terraform module:
 
+- Is limited to deployments in Azure China.
 - Supports Azure controller deployment with only 6.5 and above versions.
 - Creates an Aviatrix Controller in Azure using scale set and load balancer.
 - Creates an access account on the controller.
 - Creates storage account and container required for backup/function logs.
+- Enables backup to an Azure storage account in the controller.
 - Creates a KeyVault to safeguard secrets. 
 - Creates an Alert to check the loadbalancer health probes.
 - Creates an Azure funtion to manage failover event along with periodic backup if needed.
+- Creates a log analytics workspace required for Application Insights
 
 ## Prerequisites
 
@@ -37,15 +42,18 @@ This Terraform module:
 
 | Name | Version |
 |------|---------|
-| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | ~> 2.0 |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 2.0 |
+| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | ~> 2.36 |
+| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 3.49 |
+| <a name="provider_azapi"></a> [azapi](#provider\_azapi) | 1.4.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | \>= 2.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.4.3 |
+| <a name="provider_http"></a> [null](#provider\_http) | 3.2.1 |
 
 ## Available Modules
 
 Module  | Description |
 | ------- | ----------- |
-|[aviatrix_controller_initialize](https://github.com/AviatrixSystems/terraform-aviatrix-azure-controller/tree/master/modules/aviatrix_controller_initialize) | Initializes the Aviatrix Controller (setting admin email, setting admin password, upgrading controller version, and setting up access account) |
+|[aviatrix_controller_initialize](https://github.com/AviatrixSystems/terraform-aviatrix-azure-controller/tree/master/modules/aviatrix_controller_initialize) | Initializes the Aviatrix Controller (setting admin email, setting admin password, upgrading controller version, and setting up access account, setting up backup to an azure storage account) |
 
 ## Procedures for Building and Initializing a Controller in Azure
 
@@ -134,7 +142,7 @@ module "aviatrix_controller_azure" {
     virtual_network_name                           = "aviatrix-vnet"                    # Optional; Creates Virtual Network with this name. Default = "aviatrix-vnet"
     virtual_network_cidr                           = "<VNET CIDR>"              # Optional; Creates Virtual Network with this address space. Default = "10.0.0.0/23"
     subnet_name                                    = "controller-subnet"                             # Optional; Creates Subnet with this name. Default = "aviatrix-subnet"
-    subnet_cidr                                    = "10.0.0.0/23"                                # Optional; Creates Subnet with this cidr. Default = "10.0.0.0/24"
+    subnet_cidr                                    = "<SUBNET CIDR>"                                # Optional; Creates Subnet with this cidr. Default = "10.0.0.0/24"
     load_balancer_frontend_public_ip_name          = "aviatrix-lb-public-ip"              # Optional; Creates LoadBalancer Frontend IP with this name. Default = "aviatrix-lb-public-ip"
     load_balancer_name                             = "aviatrix-lb"                       # Optional; Creates LoadBalancer with this name. Default = "aviatrix-lb"
     load_balancer_frontend_name                    = "aviatrix-lb-frontend"              # Optional; Creates LoadBalancer Frontend Configurations with this name. Default = "aviatrix-lb-frontend"
@@ -142,7 +150,7 @@ module "aviatrix_controller_azure" {
     load_balancer_controller_health_probe_name     = "aviatrix-controller-probe"          # Optional; Creates LoadBalancer Health Probe with this name. Default = "aviatrix-controller-probe"
     load_balancer_controller_rule_name             = "aviatrix-controller-lb-rule"                  # Optional; Creates LoadBalancer Rule with this name. Default = "aviatrix-controller-lb-rule"
     network_security_group_controller_name         = "aviatrix-controller-nsg"             # Optional; Creates Network Security Group with this name. Default = "aviatrix-controller-nsg"
-    aviatrix_controller_security_group_allowed_ips = ["1.2.3.4"]          # Required; Creates Network Security Group Rule with these allowed IP's. The IP address of the machine that runs this code doesn't need to be added to this variable, it is automatically retrieved using Terraform http provider
+    aviatrix_controller_security_group_allowed_ips = []          # Optional; The IP address of the machine that runs this code doesn't need to be added to this variable, it is automatically retrieved using Terraform http provider
     controller_virtual_machine_size                = "Standard_A4_v2"                         # Optional; Creates Scale Set with this size Virtual Machine. Default = "Standard_A4_v2"
     scale_set_controller_name                      = "aviatrix-controller-scale-set"                  # Optional; Creates Scale Set with this name. Default = "aviatrix-controller-scale-set"
     avx_access_account_name                        = "azure-account"        # Required; Creates an access account with this name in the Aviatrix Controller.
