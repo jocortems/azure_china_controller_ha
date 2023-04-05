@@ -190,8 +190,6 @@ def function_handler(event):
     )
     logging.info("END : Create the Access Account based on Azure ARM")
 
-    time.sleep(60)
-
     # Step12. Enable Controller Backup to Azure Storage Account
     logging.info("START : Enable Controller backup to Azure Storage")
     response = enable_backup(
@@ -201,7 +199,7 @@ def function_handler(event):
         account_name=access_account_name,
         storage_name=storage_account_name,
         container_name=storage_account_container,
-        now="true",
+        now="false",
         multiple_backup=multiple_backup,
         region=storage_account_region,
         bucket_name="",
@@ -857,7 +855,7 @@ def enable_backup(
     account_name="avx_access_account",
     storage_name="avx_storage_account",
     container_name="storage_container_name",
-    now="true",
+    now="false",
     multiple_backup="true",
     region="China North 3",
     bucket_name="",
