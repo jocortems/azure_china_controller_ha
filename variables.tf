@@ -269,5 +269,5 @@ variable "schedule" {
 locals {
   provisionerIP = [replace(data.http.my_ip.response_body,"\n","/32")]
   m_backup = var.enable_multiple_backup ? "true" : "false"
-  allowed_ips = len(var.aviatrix_controller_security_group_allowed_ips) > 0 ? concat(var.aviatrix_controller_security_group_allowed_ips,local.provisionerIP) : local.provisionerIP
+  allowed_ips = length(var.aviatrix_controller_security_group_allowed_ips) > 0 ? concat(var.aviatrix_controller_security_group_allowed_ips,local.provisionerIP) : local.provisionerIP
 }
