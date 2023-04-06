@@ -31,16 +31,16 @@ def function_handler(event):
     rg = event["rg"]
 
     credentials = DefaultAzureCredential(authority="login.chinacloudapi.cn", managed_identity_client_id=func_client_id)
-    subscription_client = SubscriptionClient(credentials, base_url='https://management.chinacloudapi.cn')
+    subscription_client = SubscriptionClient(credentials, base_url='https://management.core.chinacloudapi.cn')
     subscription = next(subscription_client.subscriptions.list())
     subscription_id = subscription.subscription_id    
-    network_client = NetworkManagementClient(credentials, subscription_id, base_url='https://management.chinacloudapi.cn')
+    network_client = NetworkManagementClient(credentials, subscription_id, base_url='https://management.core.chinacloudapi.cn')
 
     secret_client = SecretClient(vault_url=f"https://{vault_uri}.vault.azure.cn", credential=credentials)
     retrieved_secret = secret_client.get_secret(vault_secret)
 
     lb_res_client = network_client.load_balancers    
-    lb_res_client.base_url = "https://management.chinacloudapi.cn"
+    lb_res_client.base_url = "https://management.core.chinacloudapi.cn"
     lb = LbConf(lb_res_client, rg, network_client, lb_name)
     hostname = lb.lb_public_ip_prefix
     api_endpoint_url = (
