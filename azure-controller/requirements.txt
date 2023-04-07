@@ -6,6 +6,7 @@ azure-mgmt-network==19.3.0
 azure-mgmt-resource==20.0.0
 azure-storage-blob==12.9.0
 azure-keyvault-secrets==4.3.0
+msrestazure==0.6.4
 requests==2.26.0
 retry==0.9.2
 urllib3==1.26.7

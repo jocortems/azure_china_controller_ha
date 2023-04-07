@@ -35,10 +35,10 @@ def function_handler(event):
     subscription_client = SubscriptionClient(credentials, base_url=CLOUD.endpoints.resource_manager, credential_scopes=[CLOUD.endpoints.resource_manager + "/.default"])
     subscription = next(subscription_client.subscriptions.list())
     subscription_id = subscription.subscription_id    
-    network_client = NetworkManagementClient(credentials, subscription_id, base_url=CLOUD.endpoints.resource_manager)
+    network_client = NetworkManagementClient(credentials, subscription_id, base_url=CLOUD.endpoints.resource_manager, credential_scopes=[CLOUD.endpoints.resource_manager + "/.default"])
     
 
-    secret_client = SecretClient(vault_url=f"https://{vault_uri}.vault.azure.cn", credential=credentials)
+    secret_client = SecretClient(vault_url=f"{vault_uri}", credential=credentials)
     retrieved_secret = secret_client.get_secret(vault_secret)
 
     lb_res_client = network_client.load_balancers    

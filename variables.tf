@@ -11,13 +11,13 @@ variable "location" {
 variable "avtx_service_principal_secret" {
   type = string
   description = "This is the secret of the AppID created for the Aviatrix Controller"
-  #sensitive = true
+  sensitive = true
 }
 
 variable "avtx_service_principal_appid" {
   type = string
   description = "This is the AppID of the Service Principal created for the Aviatrix Controller"
-  #sensitive = true
+  sensitive = true
 }
 
 variable "storage_account_name" {
@@ -125,13 +125,14 @@ variable "controller_virtual_machine_admin_password" {
   type        = string
   description = "Admin Password for the controller virtual machine."
   default     = ""
-  #sensitive   = true
+  sensitive   = true
 }
 
 variable "controller_public_ssh_key" {
   type        = string
   description = "Use a public SSH key for authentication to Aviatrix Controller"
   default     = ""
+  sensitive = true
 }
 
 variable "avx_access_account_name" {
@@ -152,12 +153,14 @@ variable "avx_controller_admin_email" {
 variable "avx_aviatrix_customer_id" {
   type        = string
   description = "aviatrix customer license id"
+  sensitive = true
 }
 
 variable "avx_controller_admin_password" {
   type        = string
   description = "aviatrix controller admin password"
   default     = ""
+  sensitive = true
 }
 
 variable "avx_controller_version" {
@@ -172,12 +175,6 @@ variable "log_analytics_workspace_id" {
   default     = ""
 }
 
-variable "log_analytics_workspace_sku" {
-  type        = string
-  description = "Log analytics workspace SKU. Azure China only supports PerGB2018"
-  default     = "PerGB2018"
-}
-
 variable "log_analytics_workspace_retention_in_days" {
   type        = number
   description = "Log analytics workspace log retention period"
@@ -187,7 +184,7 @@ variable "log_analytics_workspace_retention_in_days" {
 variable "log_analytics_workspace_daily_quota_gb" {
   type        = number
   description = "Log analytics workspace log retention period"
-  default     = 10
+  default     = 1
 }
 
 variable "application_insights_name" {

@@ -7,11 +7,7 @@ terraform {
     azuread = {
       source = "hashicorp/azuread"
       version = "~> 2.36"
-    }
-    azapi = {
-      source = "Azure/azapi"
-      version = "1.4.0"
-    }
+    }    
     null = {
       source = "hashicorp/null"
     }
@@ -239,7 +235,7 @@ resource "azurerm_network_security_rule" "user_defined_rules" {
 }
 
 
-#DEPLOY VMSS USING AZURERM RESOURCE
+# 8.0 Deploy Aviatrix Controller Scale Set
 
 resource "azurerm_orchestrated_virtual_machine_scale_set" "aviatrix_scale_set" {
   name                        = var.scale_set_controller_name
@@ -314,121 +310,6 @@ resource "azurerm_orchestrated_virtual_machine_scale_set" "aviatrix_scale_set" {
     write_accelerator_enabled = false
   }
 }
-
-/*
-# 8.0 Deploy Aviatrix Controller Scale Set
-resource "azapi_resource" "vmss" {
-  type      = "Microsoft.Compute/virtualMachineScaleSets@2022-11-01"
-  name      = var.scale_set_controller_name
-  parent_id = azurerm_resource_group.aviatrix_rg.id
-  location  = azurerm_resource_group.aviatrix_rg.location
-
-  body = jsonencode({
-    sku = {
-      name = var.controller_virtual_machine_size
-      tier = "Standard"
-      capacity = 1
-    }
-    tags = {
-      aviatrix_image = "aviatrix-controller"
-    }
-    properties = {
-      platformFaultDomainCount = 1
-      singlePlacementGroup     = false
-      zoneBalance              = false
-      orchestrationMode        = "Flexible"
-      automaticRepairsPolicy   = {
-        enabled = false
-      }
-      virtualMachineProfile = {
-        osProfile = {
-          computerNamePrefix = "aviatrix-"
-          adminUsername = var.controller_virtual_machine_admin_username
-          adminPassword = length(var.controller_public_ssh_key) > 0 ? null : var.controller_virtual_machine_admin_password == "" ? random_password.generate_controller_cli_secret[0].result : var.controller_virtual_machine_admin_password
-          linuxConfiguration = {
-            disablePasswordAuthentication = var.controller_public_ssh_key == "" ? false : true
-            provisionVMAgent = true
-            enableVMAgentPlatformUpdates = false
-            ssh = var.controller_public_ssh_key == "" ? {} : {
-              publicKeys = [
-                {
-                  keyData = var.controller_public_ssh_key
-                  path = "home/${var.controller_virtual_machine_admin_username}/.ssh/authorized_keys"
-                }
-              ]
-            }
-          }
-        }
-          storageProfile = {
-            osDisk = {
-              osType = "Linux"
-              createOption = "FromImage"
-              caching = "ReadWrite"
-              managedDisk = {
-                storageAccountType = "Standard_LRS"
-              }
-              deleteOption = "Delete"
-              diskSizeGB = 64
-            }
-            imageReference = {
-              publisher = "cbcnetworks"
-              offer = "aviatrix-bundle-payg-china"
-              sku = "aviatrix-enterprise-bundle-byol-china"
-              version = "latest"
-            }
-          }
-          networkProfile = {
-            networkApiVersion = "2020-11-01"
-            networkInterfaceConfigurations = [
-              {
-              name = "${var.scale_set_controller_name}-nic01"
-              properties = {
-                primary = true
-                enableAcceleratedNetworking = false
-                enableIPForwarding = false
-                dnsSettings = {
-                  dnsServers = []
-                }
-                ipConfigurations = [
-                  {
-                    name = "${var.scale_set_controller_name}-nic01"
-                    properties = {
-                      privateIPAddressVersion = "IPv4"
-                      subnet = {
-                        id = azurerm_subnet.aviatrix_controller_subnet.id
-                      }
-                      primary = true
-                      publicIPAddressConfiguration = {
-                        name = "${var.scale_set_controller_name}-public-ip"
-                        properties = {
-                          publicIPAddressVersion = "IPv4"
-                          idleTimeoutInMinutes = 15                          
-                        }
-                        sku = {
-                          name = "Standard"
-                          tier = "Regional"
-                        }
-                      }
-                      loadBalancerBackendAddressPools = [
-                        {
-                          id = azurerm_lb_backend_address_pool.aviatrix_controller_lb_backend_pool.id
-                        }
-                      ]
-                    }
-                  }
-                ]
-                networkSecurityGroup = {
-                  id = azurerm_network_security_group.aviatrix_controller_nsg.id
-                }
-              }
-              }
-            ]          
-          }        
-      }
-    }
-  })
-}
-*/
 
 # 8.1. Get VMSS Instance by Tag
 data "azurerm_resources" "get_vmss_instance" {
@@ -570,9 +451,9 @@ resource "azurerm_log_analytics_workspace" "aviatrix_controller_workspace" {
   name                = "${var.scale_set_controller_name}-la-workspace"
   location            = azurerm_resource_group.aviatrix_rg.location
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
-  sku                 = var.log_analytics_workspace_sku
-  retention_in_days   = var.log_analytics_workspace_sku == "Free" ? 7 : var.log_analytics_workspace_retention_in_days
-  daily_quota_gb      = var.log_analytics_workspace_sku == "Free" ? 0.5 : var.log_analytics_workspace_daily_quota_gb
+  sku                 = "PerGB2018" # Only SKU supported in Azure China
+  retention_in_days   = var.log_analytics_workspace_retention_in_days
+  daily_quota_gb      = var.log_analytics_workspace_daily_quota_gb
 }
 
 resource "azurerm_application_insights" "application_insights" {

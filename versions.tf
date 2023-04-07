@@ -14,7 +14,3 @@ provider "azurerm" {
 provider "azuread" {
   environment = "china"
 }
-
-provider "azapi" {
-    environment = "china"
-}
