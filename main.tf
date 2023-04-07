@@ -238,6 +238,84 @@ resource "azurerm_network_security_rule" "user_defined_rules" {
   description                 = "httpsInboundToControllerScaleSet"
 }
 
+
+#DEPLOY VMSS USING AZURERM RESOURCE
+
+resource "azurerm_orchestrated_virtual_machine_scale_set" "aviatrix_scale_set" {
+  name                        = var.scale_set_controller_name
+  resource_group_name         = azurerm_resource_group.aviatrix_rg.name
+  location                    = azurerm_resource_group.aviatrix_rg.location
+  sku_name                    = var.controller_virtual_machine_size
+  priority                    = "Regular"
+  instances                   = 1
+  platform_fault_domain_count = 1
+  encryption_at_host_enabled  = false
+  zone_balance                = false
+  tags = {
+    "aviatrix_image" = "aviatrix-controller"
+  }
+
+  automatic_instance_repair {
+    enabled = false
+  }
+
+  network_interface {
+    dns_servers                   = []
+    enable_accelerated_networking = false
+    enable_ip_forwarding          = false
+    name                          = "${var.scale_set_controller_name}-nic01"
+    network_security_group_id     = azurerm_network_security_group.aviatrix_controller_nsg.id
+    primary                       = true
+
+    ip_configuration {
+      load_balancer_backend_address_pool_ids = [
+        azurerm_lb_backend_address_pool.aviatrix_controller_lb_backend_pool.id
+      ]
+      name      = "${var.scale_set_controller_name}-nic01"
+      primary   = true
+      subnet_id = azurerm_subnet.aviatrix_controller_subnet.id
+      version   = "IPv4"
+
+      public_ip_address {
+        idle_timeout_in_minutes = 15
+        name                    = "${var.scale_set_controller_name}-public-ip"
+      }
+    }
+  }
+
+  os_profile {
+    linux_configuration {
+      computer_name_prefix            = "aviatrix-"
+      disable_password_authentication = var.controller_public_ssh_key == "" ? false : true
+      admin_username                  = var.controller_virtual_machine_admin_username
+      admin_password                  = length(var.controller_public_ssh_key) > 0 ? null : var.controller_virtual_machine_admin_password == "" ? random_password.generate_controller_cli_secret[0].result : var.controller_virtual_machine_admin_password
+      provision_vm_agent              = true
+      dynamic "admin_ssh_key" {
+        for_each = var.controller_public_ssh_key == "" ? [] : [true]
+        content {
+          public_key = var.controller_public_ssh_key
+          username   = var.controller_virtual_machine_admin_username
+        }
+      }
+    }
+  }
+
+  source_image_reference {
+    publisher = "cbcnetworks"
+    offer = "aviatrix-bundle-payg-china"
+    sku = "aviatrix-enterprise-bundle-byol-china"
+    version = "latest"
+  }
+
+  os_disk {
+    caching                   = "ReadWrite"
+    disk_size_gb              = 64
+    storage_account_type      = "Standard_LRS"
+    write_accelerator_enabled = false
+  }
+}
+
+/*
 # 8.0 Deploy Aviatrix Controller Scale Set
 resource "azapi_resource" "vmss" {
   type      = "Microsoft.Compute/virtualMachineScaleSets@2022-11-01"
@@ -350,11 +428,13 @@ resource "azapi_resource" "vmss" {
     }
   })
 }
+*/
 
 # 8.1. Get VMSS Instance by Tag
 data "azurerm_resources" "get_vmss_instance" {
   depends_on = [
-    azapi_resource.vmss
+    azurerm_orchestrated_virtual_machine_scale_set.aviatrix_scale_set
+    #azapi_resource.vmss
   ]
   resource_group_name = azurerm_resource_group.aviatrix_rg.name
   type                = "Microsoft.Compute/virtualMachines"

@@ -6,7 +6,8 @@ import azure.functions as func
 import requests
 import urllib3
 from . import version
-from azure.identity import DefaultAzureCredential
+from msrestazure.azure_cloud import AZURE_CHINA_CLOUD as CLOUD
+from azure.identity import ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 from azure.mgmt.compute import ComputeManagementClient
 from azure.mgmt.network import NetworkManagementClient
@@ -41,12 +42,12 @@ def function_handler(event):
     rg = event["rg"]
     wait_time = default_wait_time_for_apache_wakeup
 
-    credentials = DefaultAzureCredential(authority="login.chinacloudapi.cn", managed_identity_client_id=func_client_id)
-    subscription_client = SubscriptionClient(credentials, base_url='https://management.core.chinacloudapi.cn')
+    credentials = ManagedIdentityCredential(client_id=func_client_id)
+    subscription_client = SubscriptionClient(credentials, base_url=CLOUD.endpoints.resource_manager, credential_scopes=[CLOUD.endpoints.resource_manager + "/.default"])
     subscription = next(subscription_client.subscriptions.list())
     subscription_id = subscription.subscription_id    
-    network_client = NetworkManagementClient(credentials, subscription_id, base_url='https://management.core.chinacloudapi.cn')
-    compute_client = ComputeManagementClient(credentials, subscription_id, base_url='https://management.core.chinacloudapi.cn')
+    network_client = NetworkManagementClient(credentials, subscription_id, base_url=CLOUD.endpoints.resource_manager)
+    compute_client = ComputeManagementClient(credentials, subscription_id, base_url=CLOUD.endpoints.resource_manager)
     blob_service_client = BlobServiceClient(f"https://{storage_name}.blob.core.chinacloudapi.cn", credentials)
     container_client = blob_service_client.get_container_client(container_name)
     secret_client = SecretClient(vault_url=f"https://{vault_uri}.vault.azure.cn", credential=credentials)
@@ -62,7 +63,7 @@ def function_handler(event):
     vm_scaleset_client = compute_client.virtual_machine_scale_sets
     vm_res_client = compute_client.virtual_machines
     lb_res_client = network_client.load_balancers
-    lb_res_client.base_url = "https://management.core.chinacloudapi.cn"
+    lb_res_client.base_url = CLOUD.endpoints.resource_manager
 
     # Get Scaleset Name
     vmScaleSetName = os.environ["scaleset_name"]

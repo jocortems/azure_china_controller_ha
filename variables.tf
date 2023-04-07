@@ -11,13 +11,13 @@ variable "location" {
 variable "avtx_service_principal_secret" {
   type = string
   description = "This is the secret of the AppID created for the Aviatrix Controller"
-  sensitive = true
+  #sensitive = true
 }
 
 variable "avtx_service_principal_appid" {
   type = string
   description = "This is the AppID of the Service Principal created for the Aviatrix Controller"
-  sensitive = true
+  #sensitive = true
 }
 
 variable "storage_account_name" {
@@ -125,7 +125,7 @@ variable "controller_virtual_machine_admin_password" {
   type        = string
   description = "Admin Password for the controller virtual machine."
   default     = ""
-  sensitive   = true
+  #sensitive   = true
 }
 
 variable "controller_public_ssh_key" {

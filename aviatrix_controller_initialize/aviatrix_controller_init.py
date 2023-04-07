@@ -3,7 +3,6 @@ import logging
 import sys
 import time
 import traceback
-
 import requests
 
 # The wait time from experience is between 60 to 600 seconds
@@ -877,6 +876,8 @@ def enable_backup(
         str(json.dumps(obj=payload_with_hidden_password, indent=4)),
     )
 
+    time.sleep(30)
+
     response = send_aviatrix_api(
         api_endpoint_url=api_endpoint_url,
         request_method=request_method,
@@ -902,7 +903,7 @@ def verify_aviatrix_api_enable_backup(response=None):
     api_return_boolean = py_dict["return"]
     if api_return_boolean is not True:
         err_msg = (
-            "Fail to run initial setup for the Aviatrix Controller. The actual api response is  "
+            "Fail to enable backup"
             + str(py_dict)
         )
         raise AviatrixException(message=err_msg)

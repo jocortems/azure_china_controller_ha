@@ -7,7 +7,8 @@ import requests
 import urllib3
 import azure.functions as func
 from . import version
-from azure.identity import DefaultAzureCredential
+from msrestazure.azure_cloud import AZURE_CHINA_CLOUD as CLOUD
+from azure.identity import ManagedIdentityCredential
 from azure.keyvault.secrets import SecretClient
 from azure.mgmt.network import NetworkManagementClient
 from azure.mgmt.resource import SubscriptionClient
@@ -30,17 +31,18 @@ def function_handler(event):
     lb_name = event["lb_name"]
     rg = event["rg"]
 
-    credentials = DefaultAzureCredential(authority="login.chinacloudapi.cn", managed_identity_client_id=func_client_id)
-    subscription_client = SubscriptionClient(credentials, base_url='https://management.core.chinacloudapi.cn')
+    credentials = ManagedIdentityCredential(client_id=func_client_id)
+    subscription_client = SubscriptionClient(credentials, base_url=CLOUD.endpoints.resource_manager, credential_scopes=[CLOUD.endpoints.resource_manager + "/.default"])
     subscription = next(subscription_client.subscriptions.list())
     subscription_id = subscription.subscription_id    
-    network_client = NetworkManagementClient(credentials, subscription_id, base_url='https://management.core.chinacloudapi.cn')
+    network_client = NetworkManagementClient(credentials, subscription_id, base_url=CLOUD.endpoints.resource_manager)
+    
 
     secret_client = SecretClient(vault_url=f"https://{vault_uri}.vault.azure.cn", credential=credentials)
     retrieved_secret = secret_client.get_secret(vault_secret)
 
     lb_res_client = network_client.load_balancers    
-    lb_res_client.base_url = "https://management.core.chinacloudapi.cn"
+    lb_res_client.base_url = CLOUD.endpoints.resource_manager
     lb = LbConf(lb_res_client, rg, network_client, lb_name)
     hostname = lb.lb_public_ip_prefix
     api_endpoint_url = (
