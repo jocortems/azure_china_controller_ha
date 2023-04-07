@@ -46,10 +46,9 @@ This Terraform module:
 |------|---------|
 | <a name="provider_azuread"></a> [azuread](#provider\_azuread) | ~> 2.36 |
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 3.49 |
-| <a name="provider_azapi"></a> [azapi](#provider\_azapi) | 1.4.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | \>= 2.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | 3.4.3 |
-| <a name="provider_http"></a> [null](#provider\_http) | 3.2.1 |
+| <a name="provider_http"></a> [http](#provider\_http) | 3.2.1 |
 
 ## Available Modules
 
@@ -114,14 +113,14 @@ Pick the subscription you want and use it in the command below.
 az account set --subscription <subscription_id>
 ```
 
-Set environment variables ARM_ENDPOINT and ARM_ENVIRONMENT to use Azure China endpoints in Terraform:
+Set environment variables ARM_ENDPOINT and ARM_ENVIRONMENT to use Azure China endpoints:
 
   ``` shell
   export ARM_ENDPOINT=https://management.chinacloudapi.cn
   export ARM_ENVIRONMENT=china
   ```
 
-If executing this code from a CI/CD pipeline, the following environment variables are required:
+If executing this code from a CI/CD pipeline, the following environment variables are required. The service principal used to authenticate the CI/CD tool into Azure must either have subscription owner role or a custom role that has `Microsoft.Authorization/roleAssignments/write` to be able to succesfully create the role assignments required
 
 ``` shell
 export ARM_CLIENT_ID="00000000-0000-0000-0000-000000000000"
