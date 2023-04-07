@@ -851,7 +851,7 @@ def is_backup_file_is_recent(backup_file, container_client):
 def restore_ctrl_backup(creds, controller_ip, cid, storage, container, blob):
     base_url = f"https://{controller_ip}/v1/api"
     post_data = {"action": "restore_cloudx_config",
-                 "cloud_type": "8",
+                 "cloud_type": "2048",
                  "storage_name": storage,
                  "container_name": container,
                  "file_name": blob,
