@@ -21,8 +21,6 @@ This Terraform module:
 - Creates an Azure funtion to manage failover event along with periodic backup if needed.
 - Creates a log analytics workspace required for Application Insights
 
-**NOTE**: Controller backup is only enabled the first time this code is run. If a terraform destroy is performed to make changes to the input parameters and then redeploy using terraform plan/apply backup won't be enabled. Make sure to remove terraform.tfstate and terraform.lock.hcl files and re-run terraform init before running terraform plan/apply to guarantee backup will be configured. The other option is to manually enable backup in subsequent runs. 
-
 ## Prerequisites
 
 1. [Terraform v0.13+](https://www.terraform.io/downloads.html) - execute terraform files
