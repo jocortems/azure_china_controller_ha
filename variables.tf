@@ -256,6 +256,19 @@ variable "disable_periodic_backup" {
 variable "enable_multiple_backup" {
   type        = bool
   description = "Choose whether to enable multiple backups for the controller"
+  default     = true  
+}
+
+variable "enable_backup" {
+  type        = bool
+  description = "Whether to enable backup using the storage account created as part of this module. Set to false if you plan to restore from an existing backup"
+  default     = true
+}
+
+variable "icp_certificate_domain" {
+  type = string
+  description = "ICP Certificate domain. It can be added afterwards if it is not currently available"
+  default = null
 }
 
 variable "schedule" {
@@ -267,5 +280,7 @@ variable "schedule" {
 locals {
   provisionerIP = [replace(data.http.my_ip.response_body,"\n","/32")]
   m_backup = var.enable_multiple_backup ? "true" : "false"
+  e_backup = var.enable_backup ? "true" : "false"
   allowed_ips = length(var.aviatrix_controller_security_group_allowed_ips) > 0 ? concat(var.aviatrix_controller_security_group_allowed_ips,local.provisionerIP) : local.provisionerIP
+  icp_domain = var.icp_certificate_domain == null ? "false" : var.icp_certificate_domain
 }

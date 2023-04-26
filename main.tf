@@ -349,7 +349,9 @@ module "aviatrix_controller_initialize" {
   storage_account_name          = azurerm_storage_account.aviatrix_controller_storage.name
   storage_account_container     = azurerm_storage_container.aviatrix_backup_container.name
   storage_account_region        = var.location
+  enable_backup                 = local.e_backup
   multiple_backup               = local.m_backup
+  icp_certificate_domain        = local.icp_domain
 }
 
 ### RBAC For Function App ###

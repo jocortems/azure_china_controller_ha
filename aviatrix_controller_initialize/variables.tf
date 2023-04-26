@@ -62,7 +62,6 @@ variable "terraform_module_path" {
 variable "controller_version" {
   type        = string
   description = "Aviatrix Controller version"
-  default     = "latest"
 }
 
 variable "storage_account_name" {
@@ -83,4 +82,14 @@ variable "storage_account_region" {
 variable "multiple_backup" {
   type = string
   description = "Enable multiple backups"
+}
+
+variable "enable_backup" {
+  type        = string
+  description = "Whether to enable backup using the storage account created as part of this module. Set to false if you plan to restore from an existing backup"
+}
+
+variable "icp_certificate_domain" {
+  type = string
+  description = "ICP Certificate domain. It can be added afterwards if it is not currently available"
 }

@@ -37,6 +37,8 @@ def function_handler(event):
     storage_account_region = event["storage_account_region"]
     multiple_backup = event["multiple_backup"]
     wait_time = default_wait_time_for_apache_wakeup
+    e_backup = event["enable_backup"]
+    icp_domain = event["icp_certificate_domain"]
 
     # Reconstruct some parameters
     aviatrix_customer_id = aviatrix_customer_id.rstrip()
@@ -189,23 +191,39 @@ def function_handler(event):
     )
     logging.info("END : Create the Access Account based on Azure ARM")
 
-    # Step12. Enable Controller Backup to Azure Storage Account
-    logging.info("START : Enable Controller backup to Azure Storage")
-    response = enable_backup(
-        api_endpoint_url=api_endpoint_url,
-        CID=CID,                
-        cloud_type="2048",
-        account_name=access_account_name,
-        storage_name=storage_account_name,
-        container_name=storage_account_container,
-        multiple_backup=multiple_backup,
-        region=storage_account_region,
-    )
+    # Step12. Configure ICP Certificate Domain
+    if icp_domain != "false":
+        logging.info("START : Configuring ICP Certificate Domain")
+        response = set_certificate_domain(
+            api_endpoint_url=api_endpoint_url,
+            CID=CID,
+            cert_domain=icp_domain,
+        )
 
-    verify_aviatrix_api_enable_backup(
-        response=response,
-    )
-    logging.info("END : Enable Controller backup to Azure Storage")
+        verify_aviatrix_api_set_certificate_domain(
+            response=response,
+        )
+        logging.info("END : Configuring ICP Certificate Domain")
+
+    
+    # Step13. Enable Controller Backup to Azure Storage Account
+    if e_backup == "true":    
+        logging.info("START : Enable Controller backup to Azure Storage")
+        response = enable_backup(
+            api_endpoint_url=api_endpoint_url,
+            CID=CID,                
+            cloud_type="2048",
+            account_name=access_account_name,
+            storage_name=storage_account_name,
+            container_name=storage_account_container,
+            multiple_backup=multiple_backup,
+            region=storage_account_region,
+        )
+
+        verify_aviatrix_api_enable_backup(
+            response=response,
+        )
+        logging.info("END : Enable Controller backup to Azure Storage")
 
 
 def wait_until_controller_api_server_is_ready(
@@ -844,6 +862,63 @@ def verify_aviatrix_api_create_access_account(
 
 # End def verify_aviatrix_api_create_access_account()
 
+def set_certificate_domain(
+    api_endpoint_url="123.123.123.123/v1/api",
+    CID="ABCD1234",
+    cert_domain="abc.com",
+):
+    request_method = "POST"
+    data = {
+        "action": "set_cert_domain",
+        "CID": CID,
+        "cert_domain": cert_domain,
+    }
+
+    payload_with_hidden_password = dict(data)
+    payload_with_hidden_password["account_password"] = "************"
+
+    logging.info("API endpoint url: %s", str(api_endpoint_url))
+    logging.info("Request method is: %s", str(request_method))
+    logging.info(
+        "Request payload is : %s",
+        str(json.dumps(obj=payload_with_hidden_password, indent=4)),
+    )
+
+    time.sleep(30)
+
+    response = send_aviatrix_api(
+        api_endpoint_url=api_endpoint_url,
+        request_method=request_method,
+        payload=data,
+    )
+    return response
+
+def verify_aviatrix_api_set_certificate_domain(response=None):
+    if not response:
+        return
+    py_dict = response.json()
+    logging.info("Aviatrix API response is: %s", str(py_dict))
+
+    response_code = response.status_code
+    if response_code != 200:
+        err_msg = (
+            "Fail to configure ICP Certificate Domain. The actual response code is : "
+            + str(response_code)
+            + ", which is not 200"
+        )
+        raise AviatrixException(message=err_msg)
+    
+    api_return_boolean = py_dict["return"]
+    if api_return_boolean is not True:
+        err_msg = (
+            "Fail to configure ICP Certificate Domain"
+            + str(py_dict)
+        )
+        raise AviatrixException(message=err_msg)
+    pass
+
+# End Set ICP Certificate Domain
+
 def enable_backup(
     api_endpoint_url="123.123.123.123/v1/api",
     CID="ABCD1234",
@@ -930,6 +1005,8 @@ if __name__ == "__main__":
     storage_container = sys.argv[14]
     storage_region = sys.argv[15]
     multiple_backup = sys.argv[16]
+    e_backup = sys.argv[17]
+    icp_certificate_domain = sys.argv[18]
 
     event = {
         "hostname": hostname,
@@ -949,7 +1026,9 @@ if __name__ == "__main__":
         "storage_account_name": storage_account,
         "storage_account_container": storage_container,
         "storage_account_region": storage_region,
-        "multiple_backup": multiple_backup
+        "multiple_backup": multiple_backup,
+        "enable_backup": e_backup,
+        "icp_certificate_domain": icp_certificate_domain
     }
 
     try:
